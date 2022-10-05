@@ -1,0 +1,373 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to you under the Apache License, Version
+  2.0 (the "License"); you may not use this file except in compliance
+  with the License. You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0 Unless required by
+  applicable law or agreed to in writing, software distributed under the
+  License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  CONDITIONS OF ANY KIND, either express or implied. See the License for
+  the specific language governing permissions and limitations under the
+  License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.jboss.historia</groupId>
+  <artifactId>historia</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <name>Historia</name>
+  <description>Historia - Tests and requirements history</description>
+  <url>http://www.jboss.org/historia</url>
+
+  <parent>
+    <groupId>org.jboss</groupId>
+    <artifactId>jboss-parent</artifactId>
+    <version>39</version>
+  </parent>
+
+  <packaging>pom</packaging>
+
+  <scm>
+    <connection>scm:git:https://github.com/asoldano/historia.git</connection>
+    <developerConnection>scm:git:git@github.com:asoldano/historia.git</developerConnection>
+    <url>https://github.com/asoldano/historia</url>
+  </scm>
+
+  <developers>
+    <developer>
+      <id>jboss.org</id>
+      <name>JBoss.org Developers</name>
+      <organization>JBoss.org</organization>
+      <organizationUrl>http://www.jboss.org</organizationUrl>
+    </developer>
+  </developers>
+
+  <prerequisites>
+    <maven>3.0.0</maven>
+  </prerequisites>
+
+  <issueManagement>
+    <system>jira</system>
+    <url>https://issues.redhat.com/projects/HST</url>
+  </issueManagement>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <surefire.fork.mode>once</surefire.fork.mode>
+    <surefire.format>brief</surefire.format>
+    <surefire.usefile>false</surefire.usefile>
+    <compile.flags>-Xlint:unchecked,deprecation,fallthrough,finally</compile.flags>
+    <checkstyle.extension/>
+
+    <version.checkstyle-plugin>2.17</version.checkstyle-plugin>
+    <version.org.wildfly.checkstyle-config>1.0.5.Final</version.org.wildfly.checkstyle-config>
+
+    <!-- Following must stay in synch with the one used within the jbossws-cxf being pulled in wise-core-cxf -->
+    <shrinkwrap.version>1.2.6</shrinkwrap.version>
+    <arquillian.version>1.7.0.Alpha12</arquillian.version>
+    <arquillian-wildfly-container.version>5.0.0.Alpha2</arquillian-wildfly-container.version>
+
+    <wildfly.version>27.0.0.Beta1</wildfly.version>
+
+    <jboss-logging.version>3.4.3.Final</jboss-logging.version>
+    <jboss-logging-annotations.version>2.2.1.Final</jboss-logging-annotations.version>
+    <jboss-logging-processor.version>2.2.1.Final</jboss-logging-processor.version>
+    <test.resources.directory>${project.basedir}/src/test/resources</test.resources.directory>
+    <server.home>target</server.home>
+  </properties>
+
+  <!-- DistributionManagement -->
+  <distributionManagement>
+    <repository>
+      <id>jboss-releases-repository</id>
+      <name>JBoss Releases Repository</name>
+      <url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/</url>
+    </repository>
+    <snapshotRepository>
+      <id>jboss-snapshots-repository</id>
+      <name>JBoss Snapshots Repository</name>
+      <url>https://repository.jboss.org/nexus/content/repositories/snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <inceptionYear>2022</inceptionYear>
+  <mailingLists>
+    <mailingList>
+    </mailingList>
+  </mailingLists>
+  <ciManagement>
+  </ciManagement>
+  <licenses>
+    <license>
+      <name>GNU Lesser General Public License, v. 2.1</name>
+    </license>
+  </licenses>
+  <organization>
+    <name>JBoss.org</name>
+    <url>www.jboss.org</url>
+  </organization>
+
+  <modules>
+    <module>core</module>
+  </modules>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.13.1</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.logging</groupId>
+        <artifactId>jboss-logging</artifactId>
+        <version>${jboss-logging.version}</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.logging</groupId>
+        <artifactId>jboss-logging-processor</artifactId>
+        <version>${jboss-logging-processor.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.logging</groupId>
+        <artifactId>jboss-logging-annotations</artifactId>
+        <version>${jboss-logging-annotations.version}</version>
+      </dependency>
+
+
+      <!-- arquillian dependencies -->
+      <dependency>
+        <groupId>org.jboss.shrinkwrap</groupId>
+        <artifactId>shrinkwrap-depchain</artifactId>
+        <version>${shrinkwrap.version}</version>
+        <type>pom</type>
+      </dependency>
+
+      <dependency>
+        <groupId>org.wildfly.arquillian</groupId>
+        <artifactId>wildfly-arquillian-container-managed</artifactId>
+        <version>${arquillian-wildfly-container.version}</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.jboss.slf4j</groupId>
+            <artifactId>slf4j-jboss-logmanager</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.shrinkwrap.resolver</groupId>
+        <artifactId>shrinkwrap-resolver-impl-maven</artifactId>
+        <version>2.1.1</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <defaultGoal>install</defaultGoal>
+
+    <resources>
+      <resource>
+        <directory>src/main/java</directory>
+        <excludes>
+          <exclude>**/*.java</exclude>
+        </excludes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <includes>
+          <include>**/*</include>
+        </includes>
+      </resource>
+
+    </resources>
+    <testResources>
+      <testResource>
+        <directory>src/test/java</directory>
+        <excludes>
+          <exclude>**/*.java</exclude>
+        </excludes>
+      </testResource>
+      <testResource>
+        <directory>src/test/resources</directory>
+        <includes>
+          <include>**</include>
+        </includes>
+      </testResource>
+      <testResource>
+        <directory>src/test/java</directory>
+        <includes>
+          <include>**/*.xml</include>
+        </includes>
+        <filtering>true</filtering>
+      </testResource>
+    </testResources>
+
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <includes>
+              <include>**/*Test.java</include>
+              <include>**/*TestCase.java</include>
+              <include>**/*TestCases.java</include>
+            </includes>
+            <!-- do not exclude **/Abstract*Test.java **/Abstract*TestCase.java -->
+            <excludes>
+              <exclude>**/*$*</exclude>
+            </excludes>
+            <reportFormat>${surefire.format}</reportFormat>
+            <useFile>${surefire.usefile}</useFile>
+            <forkMode>${surefire.fork.mode}</forkMode>
+            <childDelegation>false</childDelegation>
+            <argLine>-ea</argLine>
+            <systemProperties>
+              <property>
+                <name>java.awt.headless</name>
+                <value>${java.awt.headless}</value>
+              </property>
+              <property>
+                <name>java.util.logging.config.file</name>
+                <value>${basedir}/target/test-classes/logging.properties</value>
+              </property>
+            </systemProperties>
+          </configuration>
+        </plugin>
+
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>org.wildfly.checkstyle</groupId>
+            <artifactId>wildfly-checkstyle-config</artifactId>
+            <version>${version.org.wildfly.checkstyle-config}</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <configLocation>wildfly-checkstyle/checkstyle.xml</configLocation>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>false</failsOnError>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <useFile />
+        </configuration>
+        <executions>
+          <execution>
+            <id>check-style</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>checkstyle</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+
+  </build>
+
+  
+
+  <profiles>
+   
+
+    <!-- [JBWS-3666] -->
+    <profile>
+      <id>eclipse-m2e</id>
+      <activation>
+        <property>
+          <name>!eclipse-m2e</name>
+        </property>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself. -->
+            <plugin>
+              <groupId>org.eclipse.m2e</groupId>
+              <artifactId>lifecycle-mapping</artifactId>
+              <version>1.0.0</version>
+              <configuration>
+                <lifecycleMappingMetadata>
+                <pluginExecutions>
+                  <pluginExecution>
+                    <pluginExecutionFilter>
+                      <groupId>org.apache.maven.plugins</groupId>
+                      <artifactId>maven-antrun-plugin</artifactId>
+                      <versionRange>[1.7,)</versionRange>
+                      <goals>
+                        <goal>run</goal>
+                      </goals>
+                    </pluginExecutionFilter>
+                    <action>
+                      <ignore />
+                    </action>
+                  </pluginExecution>
+                  <pluginExecution>
+                    <pluginExecutionFilter>
+                      <groupId>org.apache.maven.plugins</groupId>
+                      <artifactId>maven-dependency-plugin</artifactId>
+                      <versionRange>[2.8,)</versionRange>
+                      <goals>
+                        <goal>sources</goal>
+                        <goal>copy</goal>
+                      </goals>
+                    </pluginExecutionFilter>
+                    <action>
+                      <ignore />
+                    </action>
+                  </pluginExecution>
+                  <pluginExecution>
+                    <pluginExecutionFilter>
+                      <groupId>org.apache.maven.plugins</groupId>
+                      <artifactId>maven-enforcer-plugin</artifactId>
+                      <versionRange>[1.0.1,)</versionRange>
+                      <goals>
+                        <goal>enforce</goal>
+                      </goals>
+                    </pluginExecutionFilter>
+                    <action>
+                      <ignore />
+                    </action>
+                  </pluginExecution>
+                  <pluginExecution>
+                    <pluginExecutionFilter>
+                      <groupId>org.codehaus.gmaven</groupId>
+                      <artifactId>gmaven-plugin</artifactId>
+                      <versionRange>[1.5,)</versionRange>
+                      <goals>
+                        <goal>execute</goal>
+                      </goals>
+                    </pluginExecutionFilter>
+                    <action>
+                      <ignore />
+                    </action>
+                  </pluginExecution>
+                </pluginExecutions>
+                </lifecycleMappingMetadata>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+
+  </profiles>
+
+
+</project>
