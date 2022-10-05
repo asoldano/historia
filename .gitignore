@@ -8,6 +8,7 @@
 **/.classpath
 **/.project
 **/.surefire-*
+**/.checkstyle
 /profiles.xml
 /target.properties
 /transaction.log
