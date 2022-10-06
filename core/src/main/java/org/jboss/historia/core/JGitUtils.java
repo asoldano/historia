@@ -3,6 +3,8 @@ package org.jboss.historia.core;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.blame.BlameResult;
@@ -11,12 +13,14 @@ import org.eclipse.jgit.diff.RawText;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.Config;
 import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.lib.PersonIdent;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.FollowFilter;
 import org.eclipse.jgit.revwalk.RenameCallback;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.TreeFilter;
 
 /**
  * https://www.codeaffine.com/2015/12/15/getting-started-with-jgit/ 
@@ -24,28 +28,68 @@ import org.eclipse.jgit.revwalk.RevWalk;
  * @author alessio
  *
  */
-public class JGitUtils {
+public class JGitUtils implements AutoCloseable {
 
-	//https://github.com/jbossws/jbossws-api.git
+	private final Git git;
 	
-	public static Git cloneRepo(String repositoryUri, String localRepoCloneURI) throws Exception {
+	public JGitUtils(String repositoryUri, String localRepoCloneURI) {
+		git = cloneRepo(repositoryUri, localRepoCloneURI);
+	}
+	
+	private static Git cloneRepo(String repositoryUri, String localRepoCloneURI) {
 		File file = new File(localRepoCloneURI);
-		if (file.exists()) {
-			return Git.open(file);
-		} else {
-			return Git.cloneRepository().setURI(repositoryUri).setDirectory(file).call();
+		try {
+			if (file.exists()) {
+				return Git.open(file);
+			} else {
+				return Git.cloneRepository().setURI(repositoryUri).setDirectory(file).call();
+			}
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public void close() throws Exception {
+		if (git != null) {
+			git.close();
 		}
 	}
 
-	/* Better implementation following renamed files in showFileHistory
-	public static void printFileHistory(String repositoryUri, String localRepoCloneURI, String filePath) throws Exception {
-		Git git = cloneRepo(repositoryUri, localRepoCloneURI);
-		for (Iterator<RevCommit> iterator = git.log().addPath(filePath).call().iterator(); iterator.hasNext(); ) {
-			RevCommit rc = iterator.next();
-			System.out.println(rc.getName() + " " + rc.getShortMessage());
+	public Set<String> getChangedFiles(RevCommit commit) throws Exception
+	{
+	    TreeWalk walk = new TreeWalk(git.getRepository());
+	    walk.setRecursive(true);
+	    Set<String> files = new TreeSet<>(); // Uses natural ordering
+		walk.reset(commit.getTree());
+        System.out.println(" Commit: " + commit.getFullMessage() );
+		while (walk.next()) {
+			System.out.println("   " + walk.getPathString());
+			files.add(walk.getPathString());
 		}
-		git.close();
-	} */
+		walk.close();
+		return files;
+	}
+	
+	public Set<String> getChangedFiles(RevCommit parentCommit, RevCommit commit) throws Exception
+	{
+	    TreeWalk walk = new TreeWalk(git.getRepository());
+	    walk.setRecursive(true);
+
+	    walk.setFilter(TreeFilter.ANY_DIFF);
+
+        System.out.println(" Commit: " + commit.getFullMessage() );
+        System.out.println(" Parent Commit: " + parentCommit.getFullMessage() );
+        System.out.println();
+        walk.reset(parentCommit.getTree().getId(), commit.getTree().getId());
+        List<DiffEntry>changes = DiffEntry.scan(walk);
+	    Set<String> files = new TreeSet<>(); // Uses natural ordering
+        changes.forEach(de->
+        {
+            System.out.println("   " + de.getChangeType().name() + " " + de.getOldPath() + " -> " + de.getNewPath());
+            files.add(de.getNewPath());
+        });
+	    return files;
+	}
 	
 	
 	private static class DiffCollector extends RenameCallback {
@@ -57,8 +101,7 @@ public class JGitUtils {
 		}
 	}
 
-	public static void showFileHistory(String repositoryUri, String localRepoCloneURI, String filepath) throws Exception {
-		Git git = cloneRepo(repositoryUri, localRepoCloneURI);
+	public List<RevCommit> getFileHistory(String filepath) throws Exception {
 		Repository repo = git.getRepository();
 		Config config = repo.getConfig();
 		config.setBoolean("diff", null, "renames", true);
@@ -72,16 +115,16 @@ public class JGitUtils {
 		rw.setTreeFilter(followFilter);
 		rw.markStart(rw.parseCommit(repo.resolve(Constants.HEAD)));
 
+		List<RevCommit> list = new ArrayList<>();
 		for (RevCommit rc : rw) {
 			System.out.println(rc.getName() + " " + rc.getShortMessage());
+			list.add(rc);
 		}
 		rw.close();
-		git.close();
+		return list;
 	}
 	
-	public static void blameOnFile(String repositoryUri, String localRepoCloneURI, String filepath) throws Exception {
-		Git git = cloneRepo(repositoryUri, localRepoCloneURI);
-		
+	public void blameOnFile(String filepath) throws Exception {
         final BlameResult result = git.blame().setFilePath(filepath)
           .setTextComparator(RawTextComparator.WS_IGNORE_ALL).call();
         final RawText rawText = result.getResultContents();
@@ -90,7 +133,6 @@ public class JGitUtils {
           System.out.println(result.getSourceAuthor(i).getName() +
               (sc != null ? " " + sc.getCommitTime() + " " + sc.getName() : "") + ": " + rawText.getString(i));
         }
-		git.close();
 		
 	}
 }
