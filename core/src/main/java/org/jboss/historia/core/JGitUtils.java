@@ -18,6 +18,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.FollowFilter;
 import org.eclipse.jgit.revwalk.RenameCallback;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
@@ -54,6 +55,22 @@ public class JGitUtils implements AutoCloseable {
 			git.close();
 		}
 	}
+	
+	public Set<String> getFilesOnHEAD() throws Exception
+	{
+		TreeWalk walk = new TreeWalk(git.getRepository());
+	    walk.setRecursive(true);
+	    Set<String> files = new TreeSet<>(); // Uses natural ordering
+		RevCommit commit = git.log().call().iterator().next();
+		walk.reset(commit.getTree());
+//		System.out.println(" Commit: " + commit.getFullMessage() );
+		while (walk.next()) {
+//			System.out.println("walk: " + walk.getPathString());
+			files.add(walk.getPathString());
+		}
+		walk.close();
+		return files;
+	}
 
 	public Set<String> getChangedFiles(RevCommit commit) throws Exception
 	{
@@ -61,9 +78,9 @@ public class JGitUtils implements AutoCloseable {
 	    walk.setRecursive(true);
 	    Set<String> files = new TreeSet<>(); // Uses natural ordering
 		walk.reset(commit.getTree());
-        System.out.println(" Commit: " + commit.getFullMessage() );
+//        System.out.println(" Commit: " + commit.getFullMessage() );
 		while (walk.next()) {
-			System.out.println("   " + walk.getPathString());
+//			System.out.println("   " + walk.getPathString());
 			files.add(walk.getPathString());
 		}
 		walk.close();
@@ -77,22 +94,22 @@ public class JGitUtils implements AutoCloseable {
 
 	    walk.setFilter(TreeFilter.ANY_DIFF);
 
-        System.out.println(" Commit: " + commit.getFullMessage() );
-        System.out.println(" Parent Commit: " + parentCommit.getFullMessage() );
-        System.out.println();
+//        System.out.println(" Commit: " + commit.getFullMessage() );
+//        System.out.println(" Parent Commit: " + parentCommit.getFullMessage() );
+//        System.out.println();
         walk.reset(parentCommit.getTree().getId(), commit.getTree().getId());
         List<DiffEntry>changes = DiffEntry.scan(walk);
 	    Set<String> files = new TreeSet<>(); // Uses natural ordering
         changes.forEach(de->
         {
-            System.out.println("   " + de.getChangeType().name() + " " + de.getOldPath() + " -> " + de.getNewPath());
+//            System.out.println("   " + de.getChangeType().name() + " " + de.getOldPath() + " -> " + de.getNewPath());
             files.add(de.getNewPath());
         });
 	    return files;
 	}
 	
 	
-	private static class DiffCollector extends RenameCallback {
+	public static class DiffCollector extends RenameCallback {
 		List<DiffEntry> diffs = new ArrayList<DiffEntry>();
 
 		@Override
@@ -117,7 +134,7 @@ public class JGitUtils implements AutoCloseable {
 
 		List<RevCommit> list = new ArrayList<>();
 		for (RevCommit rc : rw) {
-			System.out.println(rc.getName() + " " + rc.getShortMessage());
+//			System.out.println(rc.getName() + " " + rc.getShortMessage());
 			list.add(rc);
 		}
 		rw.close();

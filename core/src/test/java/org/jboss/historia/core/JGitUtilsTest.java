@@ -17,6 +17,8 @@ public class JGitUtilsTest {
 		jgit.getChangedFiles(commitHistory.get(1), commitHistory.get(0));
 		System.out.println("-----------------");
 		jgit.getChangedFiles(commitHistory.get(2));
+		System.out.println("-----------------");
+		jgit.getFilesOnHEAD();
 		jgit.close();
 	}
 }
