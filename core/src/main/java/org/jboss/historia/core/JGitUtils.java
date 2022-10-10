@@ -13,10 +13,12 @@ import org.eclipse.jgit.diff.RawText;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.Config;
 import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.FollowFilter;
 import org.eclipse.jgit.revwalk.RenameCallback;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
@@ -58,46 +60,45 @@ public class JGitUtils implements AutoCloseable {
 	
 	public Set<String> getFilesOnHEAD() throws Exception
 	{
-		TreeWalk walk = new TreeWalk(git.getRepository());
-	    walk.setRecursive(true);
-	    Set<String> files = new TreeSet<>(); // Uses natural ordering
-		RevCommit commit = git.log().call().iterator().next();
-		walk.reset(commit.getTree());
-		while (walk.next()) {
-			files.add(walk.getPathString());
+		try (TreeWalk walk = new TreeWalk(git.getRepository())) {
+		    walk.setRecursive(true);
+		    Set<String> files = new TreeSet<>(); // Uses natural ordering
+			RevCommit commit = git.log().call().iterator().next();
+			walk.reset(commit.getTree());
+			while (walk.next()) {
+				files.add(walk.getPathString());
+			}
+			return files;
 		}
-		walk.close();
-		return files;
 	}
 
-	public Set<String> getChangedFiles(RevCommit commit) throws Exception
+	public Set<String> getChangedFiles(RevTree commitTree) throws Exception
 	{
-	    TreeWalk walk = new TreeWalk(git.getRepository());
-	    walk.setRecursive(true);
-	    Set<String> files = new TreeSet<>(); // Uses natural ordering
-		walk.reset(commit.getTree());
-		while (walk.next()) {
-			files.add(walk.getPathString());
-		}
-		walk.close();
-		return files;
+	    try (TreeWalk walk = new TreeWalk(git.getRepository())) {
+		    walk.setRecursive(true);
+		    Set<String> files = new TreeSet<>(); // Uses natural ordering
+			walk.reset(commitTree);
+			while (walk.next()) {
+				files.add(walk.getPathString());
+			}
+			return files;
+	    }
 	}
 	
-	public Set<String> getChangedFiles(RevCommit parentCommit, RevCommit commit) throws Exception
+	public Set<String> getChangedFiles(RevTree parentCommitTree, RevTree commitTree) throws Exception
 	{
-	    TreeWalk walk = new TreeWalk(git.getRepository());
-	    walk.setRecursive(true);
-
-	    walk.setFilter(TreeFilter.ANY_DIFF);
-
-        walk.reset(parentCommit.getTree().getId(), commit.getTree().getId());
-        List<DiffEntry>changes = DiffEntry.scan(walk);
-	    Set<String> files = new TreeSet<>(); // Uses natural ordering
-        changes.forEach(de->
-        {
-            files.add(de.getNewPath());
-        });
-	    return files;
+	    try (TreeWalk walk = new TreeWalk(git.getRepository())) {
+		    walk.setRecursive(true);
+		    walk.setFilter(TreeFilter.ANY_DIFF);
+	        walk.reset(parentCommitTree.getId(), commitTree.getId());
+	        List<DiffEntry>changes = DiffEntry.scan(walk);
+		    Set<String> files = new TreeSet<>(); // Uses natural ordering
+	        changes.forEach(de->
+	        {
+	            files.add(de.getNewPath());
+	        });
+		    return files;
+	    }
 	}
 	
 	
@@ -115,21 +116,21 @@ public class JGitUtils implements AutoCloseable {
 		Config config = repo.getConfig();
 		config.setBoolean("diff", null, "renames", true);
 
-		RevWalk rw = new RevWalk(repo);
-		DiffCollector diffCollector = new DiffCollector();
-
-		org.eclipse.jgit.diff.DiffConfig dc = config.get(org.eclipse.jgit.diff.DiffConfig.KEY);
-		FollowFilter followFilter = FollowFilter.create(filepath, dc);
-		followFilter.setRenameCallback(diffCollector);
-		rw.setTreeFilter(followFilter);
-		rw.markStart(rw.parseCommit(repo.resolve(Constants.HEAD)));
-
-		List<RevCommit> list = new ArrayList<>();
-		for (RevCommit rc : rw) {
-			list.add(rc);
+		try (RevWalk rw = new RevWalk(repo)) {
+			DiffCollector diffCollector = new DiffCollector();
+	
+			org.eclipse.jgit.diff.DiffConfig dc = config.get(org.eclipse.jgit.diff.DiffConfig.KEY);
+			FollowFilter followFilter = FollowFilter.create(filepath, dc);
+			followFilter.setRenameCallback(diffCollector);
+			rw.setTreeFilter(followFilter);
+			rw.markStart(rw.parseCommit(repo.resolve(Constants.HEAD)));
+	
+			List<RevCommit> list = new ArrayList<>();
+			for (RevCommit rc : rw) {
+				list.add(rc);
+			}
+			return list;
 		}
-		rw.close();
-		return list;
 	}
 	
 	public void blameOnFile(String filepath) throws Exception {
@@ -143,4 +144,25 @@ public class JGitUtils implements AutoCloseable {
         }
 		
 	}
+	
+	public RevCommit getCommit(String hash) throws Exception {
+		ObjectId oid = git.getRepository().resolve(hash);
+		return git.getRepository().parseCommit(oid);
+	}
+	
+	public RevCommit getParentCommit(RevCommit commit) throws Exception {
+		try (RevWalk revWalk = new RevWalk(git.getRepository())) {
+		    RevCommit c = revWalk.parseCommit(commit);
+		    return c.getParent(0);
+		}
+	}
+	
+	public RevTree getParentCommitTree(RevCommit commit) throws Exception {
+		try (RevWalk revWalk = new RevWalk(git.getRepository())) {
+		    RevCommit c = revWalk.parseCommit(commit);
+		    RevCommit p = c.getParent(0);
+		    return revWalk.parseTree(p);
+		}
+	}
+	
 }

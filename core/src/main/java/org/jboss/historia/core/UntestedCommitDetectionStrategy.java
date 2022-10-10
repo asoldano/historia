@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.jboss.logging.Logger;
 
 public class UntestedCommitDetectionStrategy {
@@ -73,14 +74,14 @@ public class UntestedCommitDetectionStrategy {
 					if (debug)
 						LOGGER.debug(" Commit #" + (i+1) + "- " + commit.getName() +": "+ commit.getShortMessage());
 					fu.incrementUpdates();
-					if (!affectsTests(jgit, fu, commitHistory.get(i + 1), commit)) {
+					if (!affectsTests(jgit, fu, jgit.getParentCommitTree(commit), commit.getTree())) {
 						fu.incrementUntestedUpdates();
 					}
 				}
 				fu.incrementUpdates();
 				if (debug)
 					LOGGER.debug(" Commit #" + s + ": " + commitHistory.get(s - 1).getShortMessage());
-				if (!affectsTests(jgit, fu, null, commitHistory.get(s - 1))) {
+				if (!affectsTests(jgit, fu, null, commitHistory.get(s - 1).getTree())) {
 					fu.incrementUntestedUpdates();
 				}
 			}
@@ -89,15 +90,17 @@ public class UntestedCommitDetectionStrategy {
 		return list;
 	}
 	
-	private boolean affectsTests(JGitUtils jgit, FileUpdates fu, RevCommit parentCommit, RevCommit commit) throws Exception {
+	private boolean affectsTests(JGitUtils jgit, FileUpdates fu, RevTree parentCommitTree, RevTree commitTree) throws Exception {
 		Set<String> cfs;
-		if (parentCommit == null) {
-			cfs = jgit.getChangedFiles(commit);
+		if (parentCommitTree == null) {
+			cfs = jgit.getChangedFiles(commitTree);
 		} else {
-			cfs = jgit.getChangedFiles(parentCommit, commit);
+			cfs = jgit.getChangedFiles(parentCommitTree, commitTree);
 		}
+		boolean debug = LOGGER.isDebugEnabled();
 		for (String cf : cfs) {
-			LOGGER.debug("    " + cf);
+			if (debug)
+				LOGGER.debug("    " + cf);
 			if (cf.startsWith("src/test")) {
 				return true;
 			}
