@@ -25,7 +25,7 @@
     }
   };
 
-  const csvUrl = 'test-processing-resteasy.csv';
+  const csvUrl = 'test-processing-jbossws-cxf2.csv';
   //File path,# updates,# untested updates
 
   const getData = async () => {
@@ -41,7 +41,7 @@
     .markCircle({ size: 200, opacity: 0.5 })
     .encode(
       vl.x().fieldQ('# updates').scale({ zero: false }),
-      vl.y().fieldQ('# untested updates').scale({ zero: false }),
+      vl.y().fieldQ('# untested updates %').scale({ zero: false }),
 //      vl.color().fieldN('origin'),
 //      vl.size().fieldQ('weight'),
       vl.tooltip().fieldN('File path')

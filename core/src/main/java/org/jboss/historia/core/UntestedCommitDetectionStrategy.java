@@ -18,6 +18,7 @@ public class UntestedCommitDetectionStrategy {
 		private final String path;
 		private long updates = 0;
 		private long untestedUpdates = 0;
+		private long updatesSinceLastTested = 0;
 		
 		public FileUpdates(String filePath) {
 			this.path = filePath;
@@ -31,16 +32,29 @@ public class UntestedCommitDetectionStrategy {
 			return updates;
 		}
 
-		public void incrementUpdates() {
+		public void incrementUpdates(boolean tested) {
 			this.updates = this.updates +1;
+			if (!tested) {
+				incrementUntestedUpdates();
+				if (this.updates == this.untestedUpdates)
+					incrementUpdatesSinceLastTested();
+			}
 		}
 
 		public long getUntestedUpdates() {
 			return untestedUpdates;
 		}
 
+		public long getUpdatesSinceLastTested() {
+			return updatesSinceLastTested;
+		}
+
 		public void incrementUntestedUpdates() {
 			this.untestedUpdates = this.untestedUpdates + 1;
+		}
+		
+		public void incrementUpdatesSinceLastTested() {
+			this.updatesSinceLastTested = this.updatesSinceLastTested + 1;
 		}
 		
 		public String toString() {
@@ -48,11 +62,15 @@ public class UntestedCommitDetectionStrategy {
 		}
 		
 		public static void printHeader(Writer w) throws IOException {
-			w.append("File path").append(",").append("# updates").append(",").append("# untested updates").append("\n");
+			w.append("File path").append(",").append("# updates").append(",").append("# untested updates").append(",")
+					.append("# untested updates %").append(",").append("# updates since last tested").append("\n");
 		}
 		
 		public void print(Writer w) throws IOException {
-			w.append(path).append(",").append(String.valueOf(updates)).append(",").append(String.valueOf(untestedUpdates)).append("\n");
+			w.append(path).append(",").append(String.valueOf(updates)).append(",")
+					.append(String.valueOf(untestedUpdates)).append(",")
+					.append(String.valueOf(Math.round(100 * (double) untestedUpdates / (double) updates))).append(",")
+					.append(String.valueOf(updatesSinceLastTested)).append("\n");
 		}
 	}
 	
@@ -102,17 +120,11 @@ public class UntestedCommitDetectionStrategy {
 			RevCommit commit = commitHistory.get(i);
 			if (debug)
 				LOGGER.debug(" Commit #" + (i + 1) + "- " + commit.getName() + ": " + commit.getShortMessage());
-			fu.incrementUpdates();
-			if (!affectsTests(jgit, fu, jgit.getParentCommitTree(commit), commit.getTree())) {
-				fu.incrementUntestedUpdates();
-			}
+			fu.incrementUpdates(affectsTests(jgit, fu, jgit.getParentCommitTree(commit), commit.getTree()));
 		}
-		fu.incrementUpdates();
 		if (debug)
 			LOGGER.debug(" Commit #" + s + ": " + commitHistory.get(s - 1).getShortMessage());
-		if (!affectsTests(jgit, fu, null, commitHistory.get(s - 1).getTree())) {
-			fu.incrementUntestedUpdates();
-		}
+		fu.incrementUpdates(affectsTests(jgit, fu, null, commitHistory.get(s - 1).getTree()));
 	}
 	
 	private boolean affectsTests(JGitUtils jgit, FileUpdates fu, RevTree parentCommitTree, RevTree commitTree) throws Exception {
