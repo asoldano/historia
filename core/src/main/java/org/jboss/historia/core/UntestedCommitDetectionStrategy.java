@@ -15,17 +15,23 @@ public class UntestedCommitDetectionStrategy {
 	private static final Logger LOGGER = Logger.getLogger(UntestedCommitDetectionStrategy.class);
 
 	public static class FileUpdates {
+		private final String prefix;
 		private final String path;
 		private long updates = 0;
 		private long untestedUpdates = 0;
 		private long updatesSinceLastTested = 0;
 		
-		public FileUpdates(String filePath) {
+		public FileUpdates(String prefix, String filePath) {
+			this.prefix = prefix;
 			this.path = filePath;
 		}
 		
 		public String getPath() {
 			return path;
+		}
+
+		public String getPrefix() {
+			return prefix;
 		}
 
 		public long getUpdates() {
@@ -62,12 +68,12 @@ public class UntestedCommitDetectionStrategy {
 		}
 		
 		public static void printHeader(Writer w) throws IOException {
-			w.append("File path").append(",").append("# updates").append(",").append("# untested updates").append(",")
+			w.append("Module").append(",").append("File").append(",").append("# updates").append(",").append("# untested updates").append(",")
 					.append("# untested updates %").append(",").append("# updates since last tested").append("\n");
 		}
 		
 		public void print(Writer w) throws IOException {
-			w.append(path).append(",").append(String.valueOf(updates)).append(",")
+			w.append(prefix).append(",").append(path).append(",").append(String.valueOf(updates)).append(",")
 					.append(String.valueOf(untestedUpdates)).append(",")
 					.append(String.valueOf(Math.round(100 * (double) untestedUpdates / (double) updates))).append(",")
 					.append(String.valueOf(updatesSinceLastTested)).append("\n");
@@ -75,11 +81,9 @@ public class UntestedCommitDetectionStrategy {
 	}
 	
 	private final String pathFilter;
-	private final boolean isPrefix;
 	
-	public UntestedCommitDetectionStrategy(String pathFilter, boolean isPrefix) {
+	public UntestedCommitDetectionStrategy(String pathFilter) {
 		this.pathFilter = pathFilter;
-		this.isPrefix = isPrefix;
 	}
 	
 	public List<FileUpdates> process(String repositoryUri, String localRepoCloneURI) throws Exception {
@@ -87,8 +91,9 @@ public class UntestedCommitDetectionStrategy {
 		Set<String> files = jgit.getFilesOnHEAD();
 		List<FileUpdates> list = new ArrayList<>();
 		for (String f : files) {
-			if (pathFilter == null || (isPrefix ? f.startsWith(pathFilter) : f.contains(pathFilter))) {
-				FileUpdates fu = new FileUpdates(f);
+			int pathFilterIndex = pathFilter == null ? 0 : f.indexOf(pathFilter);
+			if (pathFilterIndex >= 0) {
+				FileUpdates fu = new FileUpdates(f.substring(0, pathFilterIndex), f.substring(pathFilterIndex));
 				processFile(fu, jgit, f, LOGGER.isDebugEnabled());
 				list.add(fu);
 			}
@@ -102,8 +107,9 @@ public class UntestedCommitDetectionStrategy {
 		Set<String> files = jgit.getFilesOnHEAD();
 		FileUpdates.printHeader(w);
 		for (String f : files) {
-			if (pathFilter == null || (isPrefix ? f.startsWith(pathFilter) : f.contains(pathFilter))) {
-				FileUpdates fu = new FileUpdates(f);
+			int pathFilterIndex = pathFilter == null ? 0 : f.indexOf(pathFilter);
+			if (pathFilterIndex >= 0) {
+				FileUpdates fu = new FileUpdates(f.substring(0, pathFilterIndex), f.substring(pathFilterIndex));
 				processFile(fu, jgit, f, LOGGER.isDebugEnabled());
 				fu.print(w);
 			}

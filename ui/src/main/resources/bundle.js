@@ -25,7 +25,7 @@
     }
   };
 
-  const csvUrl = 'test-processing-jbossws-cxf2.csv';
+  const csvUrl = 'test-processing-resteasy3.csv';
   //File path,# updates,# untested updates
 
   const getData = async () => {
@@ -42,9 +42,11 @@
     .encode(
       vl.x().fieldQ('# updates').scale({ zero: false }),
       vl.y().fieldQ('# untested updates %').scale({ zero: false }),
-//      vl.color().fieldN('origin'),
-//      vl.size().fieldQ('weight'),
-      vl.tooltip().fieldN('File path')
+//      vl.y().fieldQ('# updates since last tested').scale({ zero: false }),
+      vl.color().fieldN('Module'),
+//      vl.size().field('# updates since last tested'),
+//      vl.size().field('# untested updates %'),
+      vl.tooltip().fieldN('File')
     );
 
   vl.register(vega, vegaLite, {

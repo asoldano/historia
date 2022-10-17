@@ -14,7 +14,7 @@ public class UntestedCommitDetectionStrategyTest {
 	@Test
 	public void testProcessing() throws Exception {
 		final String filename = "target/test-processing-jbossws-spi-" + System.currentTimeMillis() + ".csv";
-		UntestedCommitDetectionStrategy s = new UntestedCommitDetectionStrategy("src/main/java", true);
+		UntestedCommitDetectionStrategy s = new UntestedCommitDetectionStrategy("src/main/java");
 		try (FileWriter writer = new FileWriter(filename, true); BufferedWriter bw = new BufferedWriter(writer)) {
 			s.process("https://github.com/jbossws/jbossws-spi.git", "target/jgit/jbossws-spi", bw);
 		}
@@ -28,12 +28,29 @@ public class UntestedCommitDetectionStrategyTest {
 		assertTrue(found);
 	}
 
+	@Test
+	public void testProcessing2() throws Exception {
+		final String filename = "target/test-processing-resteasy-" + System.currentTimeMillis() + ".csv";
+		UntestedCommitDetectionStrategy s = new UntestedCommitDetectionStrategy("src/main/java");
+		try (FileWriter writer = new FileWriter(filename, true); BufferedWriter bw = new BufferedWriter(writer)) {
+			s.process("https://github.com/resteasy/resteasy.git", "target/jgit/resteasy", bw);
+		}
+//		boolean found = false;
+//		try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+//			String line = reader.readLine();
+//			while (line != null && !found) {
+//				found = reader.readLine().contains("src/main/java/org/jboss/wsf/spi/deployment/Extensible.java,5,5");
+//			}
+//		}
+//		assertTrue(found);
+	}
+	
 //	@Test
 //	public void testProcessing2() throws Exception {
-//		final String filename = "target/test-processing-resteasy-" + System.currentTimeMillis() + ".csv";
-//		UntestedCommitDetectionStrategy s = new UntestedCommitDetectionStrategy("src/main/java", false);
+//		final String filename = "target/test-processing-jbossws-cxf-" + System.currentTimeMillis() + ".csv";
+//		UntestedCommitDetectionStrategy s = new UntestedCommitDetectionStrategy("src/main/java");
 //		try (FileWriter writer = new FileWriter(filename, true); BufferedWriter bw = new BufferedWriter(writer)) {
-//			s.process("https://github.com/resteasy/resteasy.git", "target/jgit/resteasy", bw);
+//			s.process("https://github.com/jbossws/jbossws-cxf.git", "target/jgit/jbossws-cxf", bw);
 //		}
 ////		boolean found = false;
 ////		try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
