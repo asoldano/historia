@@ -25,7 +25,8 @@
     }
   };
 
-  const csvUrl = 'test-processing-resteasy3.csv';
+//  const csvUrl = 'test-processing-ironjacamar.csv';
+  const csvUrl = window.location.search.substr(1);
   //File path,# updates,# untested updates
 
   const getData = async () => {
