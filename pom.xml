@@ -154,7 +154,7 @@
 		<groupId>org.jboss.slf4j</groupId>
 		<artifactId>slf4j-jboss-logging</artifactId>
 		<version>${slf4j-jboss-logging.version}</version>
-		<scope>provided</scope>
+		<!--<scope>provided</scope>-->
 	  </dependency>
 
 	  <dependency>
@@ -168,7 +168,7 @@
         <groupId>org.jboss.logging</groupId>
         <artifactId>jboss-logging</artifactId>
         <version>${jboss-logging.version}</version>
-        <scope>provided</scope>
+        <!--<scope>provided</scope>-->
       </dependency>
 
       <dependency>
