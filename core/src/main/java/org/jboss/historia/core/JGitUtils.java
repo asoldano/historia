@@ -2,9 +2,13 @@ package org.jboss.historia.core;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.blame.BlameResult;
@@ -165,4 +169,84 @@ public class JGitUtils implements AutoCloseable {
 		}
 	}
 	
+	/**
+	 * Extract pull request ID from commit message.
+	 * Common formats include:
+	 * - "Merge pull request #123 from..."
+	 * - "[PR-123] Fix bug..."
+	 * - "Fix bug (#123)"
+	 * 
+	 * @param commit The commit to analyze
+	 * @return The pull request ID or null if not found
+	 */
+	public String extractPullRequestId(RevCommit commit) {
+		String message = commit.getFullMessage();
+		
+		// Common patterns for PR references in commit messages
+		Pattern[] patterns = {
+			Pattern.compile("Merge pull request #(\\d+)"),
+			Pattern.compile("\\[PR[\\s-]?(\\d+)\\]"),
+			Pattern.compile("\\(#(\\d+)\\)"),
+			Pattern.compile("#(\\d+)"),
+		};
+		
+		for (Pattern pattern : patterns) {
+			Matcher matcher = pattern.matcher(message);
+			if (matcher.find()) {
+				return matcher.group(1);
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Group commits by pull request ID.
+	 * Commits that don't have a PR ID will be mapped to their own commit hash.
+	 * 
+	 * @param commits List of commits to group
+	 * @return Map of PR ID (or commit hash) to list of commits
+	 */
+	public Map<String, List<RevCommit>> groupCommitsByPullRequest(List<RevCommit> commits) {
+		Map<String, List<RevCommit>> prGroups = new HashMap<>();
+		
+		for (RevCommit commit : commits) {
+			String prId = extractPullRequestId(commit);
+			
+			// If no PR ID found, use commit hash as the key
+			if (prId == null) {
+				prId = commit.getName();
+			}
+			
+			prGroups.computeIfAbsent(prId, k -> new ArrayList<>()).add(commit);
+		}
+		
+		return prGroups;
+	}
+	
+	/**
+	 * Check if any commit in a pull request affects test files.
+	 * 
+	 * @param prCommits List of commits in a pull request
+	 * @return true if any commit in the PR affects test files
+	 */
+	public boolean pullRequestAffectsTests(List<RevCommit> prCommits) throws Exception {
+		for (RevCommit commit : prCommits) {
+			Set<String> changedFiles;
+			if (commit.getParentCount() > 0) {
+				RevTree parentTree = getParentCommitTree(commit);
+				changedFiles = getChangedFiles(parentTree, commit.getTree());
+			} else {
+				changedFiles = getChangedFiles(commit.getTree());
+			}
+			
+			for (String file : changedFiles) {
+				if (file.contains("src/test")) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	}
 }

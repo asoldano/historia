@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -120,17 +121,36 @@ public class UntestedCommitDetectionStrategy {
 	private void processFile(FileUpdates fu, JGitUtils jgit, String f, boolean debug) throws Exception {
 		if (debug)
 			LOGGER.debug("F: " + f);
+		
+		// Get file history
 		List<RevCommit> commitHistory = jgit.getFileHistory(f);
-		int s = commitHistory.size();
-		for (int i = 0; i < s - 1; i++) {
-			RevCommit commit = commitHistory.get(i);
-			if (debug)
-				LOGGER.debug(" Commit #" + (i + 1) + "- " + commit.getName() + ": " + commit.getShortMessage());
-			fu.incrementUpdates(affectsTests(jgit, fu, jgit.getParentCommitTree(commit), commit.getTree()));
-		}
+		
+		// Group commits by pull request
+		Map<String, List<RevCommit>> prGroups = jgit.groupCommitsByPullRequest(commitHistory);
+		
 		if (debug)
-			LOGGER.debug(" Commit #" + s + ": " + commitHistory.get(s - 1).getShortMessage());
-		fu.incrementUpdates(affectsTests(jgit, fu, null, commitHistory.get(s - 1).getTree()));
+			LOGGER.debug("Found " + prGroups.size() + " pull requests/individual commits for file " + f);
+		
+		// Process each pull request group
+		for (Map.Entry<String, List<RevCommit>> entry : prGroups.entrySet()) {
+			String prId = entry.getKey();
+			List<RevCommit> prCommits = entry.getValue();
+			
+			if (debug)
+				LOGGER.debug(" Processing PR/Commit group: " + prId + " with " + prCommits.size() + " commits");
+			
+			// Check if any commit in this PR affects tests
+			boolean testedInPR = jgit.pullRequestAffectsTests(prCommits);
+			
+			// For each commit in the PR, increment updates with the same tested status
+			for (RevCommit commit : prCommits) {
+				if (debug)
+					LOGGER.debug("  Commit: " + commit.getName() + ": " + commit.getShortMessage() + 
+							" (Tested in PR: " + testedInPR + ")");
+				
+				fu.incrementUpdates(testedInPR);
+			}
+		}
 	}
 	
 	private boolean affectsTests(JGitUtils jgit, FileUpdates fu, RevTree parentCommitTree, RevTree commitTree) throws Exception {
