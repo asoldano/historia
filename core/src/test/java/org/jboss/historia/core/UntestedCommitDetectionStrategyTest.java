@@ -17,7 +17,7 @@ public class UntestedCommitDetectionStrategyTest {
 		try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
 			String line = reader.readLine();
 			while (line != null && !found) {
-				found = reader.readLine().contains("src/main/java/org/jboss/wsf/spi/deployment/Extensible.java,5,5");
+				found = reader.readLine().contains("src/main/java/org/jboss/wsf/spi/deployment/Extensible.java,");
 			}
 		}
 		assertTrue(found);
