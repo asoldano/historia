@@ -30,6 +30,11 @@
         <relativePath>../pom.xml</relativePath>
 	</parent>
 	
+	<properties>
+		<surefire.jdwp.args>-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005</surefire.jdwp.args>
+		<surefire.jvm.args></surefire.jvm.args>
+	</properties>
+	
 	<dependencies>
 	    <dependency>
             <groupId>org.eclipse.jgit</groupId>
@@ -100,6 +105,11 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>${surefire.jvm.args}</argLine>
+					<failIfNoTests>false</failIfNoTests>
+					<runOrder>alphabetical</runOrder>
+				</configuration>
 			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -136,5 +146,24 @@
 			</plugin>
 		</plugins>
 	</build>
+
+
+	<profiles>
+		<!--
+		Name:  debug
+		Descr: Enable remote debuging for tests
+		-->
+		<profile>
+			<id>debug</id>
+			<activation>
+				<property>
+				<name>debug</name>
+				</property>
+			</activation>
+			<properties>
+				<surefire.jvm.args>${surefire.jdwp.args}</surefire.jvm.args>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>
