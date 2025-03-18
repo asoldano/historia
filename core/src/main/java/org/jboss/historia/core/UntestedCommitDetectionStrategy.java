@@ -125,27 +125,41 @@ public class UntestedCommitDetectionStrategy {
 		// Get file history
 		List<RevCommit> commitHistory = jgit.getFileHistory(f);
 		
-		// Group commits by pull request
-		Map<String, List<RevCommit>> prGroups = jgit.groupCommitsByPullRequest(commitHistory);
+		// Find all PRs that include changes to this file
+		Map<String, List<RevCommit>> fileCommitsByPR = jgit.getPullRequestsForFile(f);
 		
 		if (debug)
-			LOGGER.debug("Found " + prGroups.size() + " pull requests/individual commits for file " + f);
+			LOGGER.debug("Found " + fileCommitsByPR.size() + " pull requests/individual commits for file " + f);
 		
-		// Process each pull request group
-		for (Map.Entry<String, List<RevCommit>> entry : prGroups.entrySet()) {
+		// Process each pull request that modified this file
+		for (Map.Entry<String, List<RevCommit>> entry : fileCommitsByPR.entrySet()) {
 			String prId = entry.getKey();
-			List<RevCommit> prCommits = entry.getValue();
+			List<RevCommit> fileCommitsInPR = entry.getValue();
 			
-			if (debug)
-				LOGGER.debug(" Processing PR/Commit group: " + prId + " with " + prCommits.size() + " commits");
+			// Check if this is a real PR ID (not a commit hash used as fallback)
+			boolean isRealPR = !prId.equals(fileCommitsInPR.get(0).getName());
+			
+			// If this is a real PR, get ALL commits in the PR, not just those that modified this file
+			List<RevCommit> allCommitsInPR;
+			if (isRealPR) {
+				allCommitsInPR = jgit.getCommitsInPullRequest(prId);
+				if (debug)
+					LOGGER.debug(" Processing PR: " + prId + " with " + fileCommitsInPR.size() + 
+							" commits modifying this file (out of " + allCommitsInPR.size() + " total commits in PR)");
+			} else {
+				// If not a real PR, just use the commit itself
+				allCommitsInPR = fileCommitsInPR;
+				if (debug)
+					LOGGER.debug(" Processing individual commit: " + prId);
+			}
 			
 			// Check if any commit in this PR affects tests
-			boolean testedInPR = jgit.pullRequestAffectsTests(prCommits);
+			boolean testedInPR = jgit.pullRequestAffectsTests(allCommitsInPR);
 			
-			// For each commit in the PR, increment updates with the same tested status
-			for (RevCommit commit : prCommits) {
+			// For each commit that modified this file, increment updates with the same tested status
+			for (RevCommit commit : fileCommitsInPR) {
 				if (debug)
-					LOGGER.debug("  Commit: " + commit.getName() + ": " + commit.getShortMessage() + 
+					LOGGER.debug("  Commit: " + commit.getName().substring(0, 8) + ": " + commit.getShortMessage() + 
 							" (Tested in PR: " + testedInPR + ")");
 				
 				fu.incrementUpdates(testedInPR);

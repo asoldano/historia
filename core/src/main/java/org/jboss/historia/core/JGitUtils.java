@@ -3,6 +3,7 @@ package org.jboss.historia.core;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +42,15 @@ public class JGitUtils implements AutoCloseable {
 	
 	public JGitUtils(String repositoryUri, String localRepoCloneURI) {
 		git = cloneRepo(repositoryUri, localRepoCloneURI);
+	}
+	
+	/**
+	 * Get the underlying Git instance.
+	 * 
+	 * @return The Git instance
+	 */
+	public Git getGit() {
+		return git;
 	}
 	
 	private static Git cloneRepo(String repositoryUri, String localRepoCloneURI) {
@@ -170,34 +180,74 @@ public class JGitUtils implements AutoCloseable {
 	}
 	
 	/**
-	 * Extract pull request ID from commit message.
+	 * Check if a commit is a merge commit (has more than one parent).
+	 * 
+	 * @param commit The commit to check
+	 * @return true if the commit is a merge commit
+	 */
+	public boolean isMergeCommit(RevCommit commit) {
+		return commit.getParentCount() > 1;
+	}
+	
+	/**
+	 * Extract pull request ID from a merge commit message.
 	 * Common formats include:
 	 * - "Merge pull request #123 from..."
-	 * - "[PR-123] Fix bug..."
-	 * - "Fix bug (#123)"
 	 * 
-	 * @param commit The commit to analyze
+	 * @param commit The merge commit to analyze
 	 * @return The pull request ID or null if not found
 	 */
 	public String extractPullRequestId(RevCommit commit) {
+		if (!isMergeCommit(commit)) {
+			return null;
+		}
+		
 		String message = commit.getFullMessage();
 		
-		// Common patterns for PR references in commit messages
-		Pattern[] patterns = {
-			Pattern.compile("Merge pull request #(\\d+)"),
+		// Pattern for GitHub PR merge commits
+		Pattern prPattern = Pattern.compile("Merge pull request #(\\d+)");
+		Matcher matcher = prPattern.matcher(message);
+		
+		if (matcher.find()) {
+			return matcher.group(1);
+		}
+		
+		// Fallback patterns for other PR references
+		Pattern[] fallbackPatterns = {
 			Pattern.compile("\\[PR[\\s-]?(\\d+)\\]"),
 			Pattern.compile("\\(#(\\d+)\\)"),
-			Pattern.compile("#(\\d+)"),
+			Pattern.compile("Merge PR #(\\d+)"),
 		};
 		
-		for (Pattern pattern : patterns) {
-			Matcher matcher = pattern.matcher(message);
+		for (Pattern pattern : fallbackPatterns) {
+			matcher = pattern.matcher(message);
 			if (matcher.find()) {
 				return matcher.group(1);
 			}
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Get all commits in the repository.
+	 * 
+	 * @return List of all commits in the repository
+	 */
+	public List<RevCommit> getAllCommits() throws Exception {
+		List<RevCommit> allCommits = new ArrayList<>();
+		
+		try {
+			Iterable<RevCommit> commits = git.log().all().call();
+			for (RevCommit commit : commits) {
+				allCommits.add(commit);
+			}
+		} catch (Exception e) {
+			LOGGER.error("Error getting all commits", e);
+			throw e;
+		}
+		
+		return allCommits;
 	}
 	
 	/**
@@ -222,6 +272,184 @@ public class JGitUtils implements AutoCloseable {
 		}
 		
 		return prGroups;
+	}
+	
+	/**
+	 * Get all merge commits in the repository.
+	 * 
+	 * @return List of merge commits
+	 */
+	public List<RevCommit> getMergeCommits() throws Exception {
+		List<RevCommit> allCommits = getAllCommits();
+		List<RevCommit> mergeCommits = new ArrayList<>();
+		
+		for (RevCommit commit : allCommits) {
+			if (isMergeCommit(commit)) {
+				mergeCommits.add(commit);
+			}
+		}
+		
+		return mergeCommits;
+	}
+	
+	/**
+	 * Get all commits that were merged in through a merge commit.
+	 * This traces all commits that are reachable from the merge commit's second parent
+	 * but not from the first parent.
+	 * 
+	 * @param mergeCommit The merge commit
+	 * @return List of commits that were merged in
+	 */
+	public List<RevCommit> getMergedCommits(RevCommit mergeCommit) throws Exception {
+		if (!isMergeCommit(mergeCommit)) {
+			return new ArrayList<>();
+		}
+		
+		Repository repo = git.getRepository();
+		List<RevCommit> mergedCommits = new ArrayList<>();
+		
+		try (RevWalk revWalk = new RevWalk(repo)) {
+			// Get the merge commit's parents
+			RevCommit firstParent = revWalk.parseCommit(mergeCommit.getParent(0).getId());
+			RevCommit secondParent = revWalk.parseCommit(mergeCommit.getParent(1).getId());
+			
+			// Get all commits reachable from the second parent
+			revWalk.reset();
+			revWalk.markStart(secondParent);
+			
+			// Exclude commits reachable from the first parent
+			revWalk.markUninteresting(firstParent);
+			
+			// Collect all commits that are in the second parent but not in the first
+			for (RevCommit commit : revWalk) {
+				mergedCommits.add(commit);
+			}
+		}
+		
+		return mergedCommits;
+	}
+	
+	/**
+	 * Build a map of all pull requests in the repository, including all commits
+	 * that were part of each PR.
+	 * 
+	 * @return Map of PR ID to list of commits in that PR
+	 */
+	public Map<String, List<RevCommit>> getAllPullRequests() throws Exception {
+		List<RevCommit> mergeCommits = getMergeCommits();
+		Map<String, List<RevCommit>> allPRs = new HashMap<>();
+		
+		for (RevCommit mergeCommit : mergeCommits) {
+			String prId = extractPullRequestId(mergeCommit);
+			
+			if (prId != null) {
+				// Get all commits that were merged in this PR
+				List<RevCommit> prCommits = getMergedCommits(mergeCommit);
+				
+				// Add the merge commit itself
+				prCommits.add(mergeCommit);
+				
+				allPRs.put(prId, prCommits);
+			}
+		}
+		
+		return allPRs;
+	}
+	
+	/**
+	 * Find all pull requests that include changes to a specific file.
+	 * 
+	 * @param filepath Path to the file
+	 * @return Map of PR ID to list of commits in that PR that modify the file
+	 */
+	public Map<String, List<RevCommit>> getPullRequestsForFile(String filepath) throws Exception {
+		// Get all PRs in the repository
+		Map<String, List<RevCommit>> allPRs = getAllPullRequests();
+		
+		// Get the file's commit history
+		List<RevCommit> fileHistory = getFileHistory(filepath);
+		Set<String> fileCommitHashes = new HashSet<>();
+		for (RevCommit commit : fileHistory) {
+			fileCommitHashes.add(commit.getName());
+		}
+		
+		// Find PRs that include commits modifying this file
+		Map<String, List<RevCommit>> fileCommitsByPR = new HashMap<>();
+		
+		// First, check PRs identified through merge commits
+		for (Map.Entry<String, List<RevCommit>> entry : allPRs.entrySet()) {
+			String prId = entry.getKey();
+			List<RevCommit> prCommits = entry.getValue();
+			
+			// Find commits in this PR that modified the file
+			List<RevCommit> fileCommitsInPR = new ArrayList<>();
+			for (RevCommit commit : prCommits) {
+				if (fileCommitHashes.contains(commit.getName())) {
+					fileCommitsInPR.add(commit);
+				}
+			}
+			
+			// If this PR includes commits that modified the file, add it to the result
+			if (!fileCommitsInPR.isEmpty()) {
+				fileCommitsByPR.put(prId, fileCommitsInPR);
+			}
+		}
+		
+		// Then, handle individual commits that aren't part of an identified PR
+		for (RevCommit commit : fileHistory) {
+			boolean isInPR = false;
+			
+			// Check if this commit is already included in a PR
+			for (List<RevCommit> prCommits : fileCommitsByPR.values()) {
+				for (RevCommit prCommit : prCommits) {
+					if (prCommit.getName().equals(commit.getName())) {
+						isInPR = true;
+						break;
+					}
+				}
+				if (isInPR) {
+					break;
+				}
+			}
+			
+			// If not in a PR, add it as an individual commit
+			if (!isInPR) {
+				List<RevCommit> individualCommit = new ArrayList<>();
+				individualCommit.add(commit);
+				fileCommitsByPR.put(commit.getName(), individualCommit);
+			}
+		}
+		
+		return fileCommitsByPR;
+	}
+	
+	/**
+	 * Get all commits in a specific pull request.
+	 * 
+	 * @param prId Pull request ID
+	 * @return List of all commits in the PR
+	 */
+	public List<RevCommit> getCommitsInPullRequest(String prId) throws Exception {
+		Map<String, List<RevCommit>> allPRs = getAllPullRequests();
+		
+		// If we have this PR in our map, return its commits
+		if (allPRs.containsKey(prId)) {
+			return allPRs.get(prId);
+		}
+		
+		// If not found in PRs identified through merge commits, try the old approach
+		List<RevCommit> allCommits = getAllCommits();
+		List<RevCommit> prCommits = new ArrayList<>();
+		
+		for (RevCommit commit : allCommits) {
+			String commitPrId = extractPullRequestId(commit);
+			
+			if (prId.equals(commitPrId)) {
+				prCommits.add(commit);
+			}
+		}
+		
+		return prCommits;
 	}
 	
 	/**
