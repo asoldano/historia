@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.jboss.logging.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +18,7 @@ public class JGitUtilsCachingTest {
     
     private static final String REPO_URL = "https://github.com/jbossws/jbossws-api.git";
     private static final String LOCAL_REPO_PATH = "target/jgit/jbossws-api-cache-test";
+    private static final Logger LOGGER = Logger.getLogger(JGitUtilsCachingTest.class);
     
     private JGitUtils jgit;
     
@@ -52,9 +54,9 @@ public class JGitUtilsCachingTest {
                 commits1.size(), commits2.size());
         
         // Verify the second call is significantly faster
-        System.out.println("getAllCommits() first call: " + firstCallTime + "ms");
-        System.out.println("getAllCommits() second call: " + secondCallTime + "ms");
-        System.out.println("Performance improvement: " + 
+        LOGGER.debug("getAllCommits() first call: " + firstCallTime + "ms");
+        LOGGER.debug("getAllCommits() second call: " + secondCallTime + "ms");
+        LOGGER.debug("Performance improvement: " + 
                 Math.round((double)firstCallTime / secondCallTime) + "x faster");
         
         assertTrue("Second call should be significantly faster", secondCallTime < firstCallTime / 2);
@@ -80,9 +82,9 @@ public class JGitUtilsCachingTest {
                 commits1.size(), commits2.size());
         
         // Verify the second call is significantly faster
-        System.out.println("getMergeCommits() first call: " + firstCallTime + "ms");
-        System.out.println("getMergeCommits() second call: " + secondCallTime + "ms");
-        System.out.println("Performance improvement: " + 
+        LOGGER.debug("getMergeCommits() first call: " + firstCallTime + "ms");
+        LOGGER.debug("getMergeCommits() second call: " + secondCallTime + "ms");
+        LOGGER.debug("Performance improvement: " + 
                 Math.round((double)firstCallTime / secondCallTime) + "x faster");
         
         assertTrue("Second call should be significantly faster", secondCallTime < firstCallTime / 2);
@@ -108,9 +110,9 @@ public class JGitUtilsCachingTest {
                 prs1.size(), prs2.size());
         
         // Verify the second call is significantly faster
-        System.out.println("getAllPullRequests() first call: " + firstCallTime + "ms");
-        System.out.println("getAllPullRequests() second call: " + secondCallTime + "ms");
-        System.out.println("Performance improvement: " + 
+        LOGGER.debug("getAllPullRequests() first call: " + firstCallTime + "ms");
+        LOGGER.debug("getAllPullRequests() second call: " + secondCallTime + "ms");
+        LOGGER.debug("Performance improvement: " + 
                 Math.round((double)firstCallTime / secondCallTime) + "x faster");
         
         assertTrue("Second call should be significantly faster", secondCallTime < firstCallTime / 2);
@@ -138,9 +140,9 @@ public class JGitUtilsCachingTest {
                 history1.size(), history2.size());
         
         // Verify the second call is significantly faster
-        System.out.println("getFileHistory() first call: " + firstCallTime + "ms");
-        System.out.println("getFileHistory() second call: " + secondCallTime + "ms");
-        System.out.println("Performance improvement: " + 
+        LOGGER.debug("getFileHistory() first call: " + firstCallTime + "ms");
+        LOGGER.debug("getFileHistory() second call: " + secondCallTime + "ms");
+        LOGGER.debug("Performance improvement: " + 
                 Math.round((double)firstCallTime / secondCallTime) + "x faster");
         
         assertTrue("Second call should be significantly faster", secondCallTime < firstCallTime / 2);
@@ -173,9 +175,9 @@ public class JGitUtilsCachingTest {
         jgit.getAllCommits();
         long secondCallTime = System.currentTimeMillis() - startTime;
         
-        System.out.println("getAllCommits() after clearCaches(): " + callTime + "ms");
-        System.out.println("getAllCommits() second call after clearCaches(): " + secondCallTime + "ms");
-        System.out.println("Performance ratio: " + ((double)callTime / Math.max(1, secondCallTime)));
+        LOGGER.debug("getAllCommits() after clearCaches(): " + callTime + "ms");
+        LOGGER.debug("getAllCommits() second call after clearCaches(): " + secondCallTime + "ms");
+        LOGGER.debug("Performance ratio: " + ((double)callTime / Math.max(1, secondCallTime)));
         
         // The second call should be faster, but for small repositories or when the data is
         // already in the OS cache, the difference might not be as dramatic
@@ -204,8 +206,8 @@ public class JGitUtilsCachingTest {
         assertNotNull("Should return PRs for file 1", file1PRs);
         assertNotNull("Should return PRs for file 2", file2PRs);
         
-        System.out.println("getPullRequestsForFile() first file: " + firstFileTime + "ms");
-        System.out.println("getPullRequestsForFile() second file: " + secondFileTime + "ms");
+        LOGGER.debug("getPullRequestsForFile() first file: " + firstFileTime + "ms");
+        LOGGER.debug("getPullRequestsForFile() second file: " + secondFileTime + "ms");
         
         // Note: The second file might not be significantly faster if the file history lookup
         // dominates the processing time. But repository-wide data should be cached.

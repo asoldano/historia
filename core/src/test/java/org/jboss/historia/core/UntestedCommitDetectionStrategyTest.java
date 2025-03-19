@@ -13,10 +13,13 @@ import java.util.Set;
 
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
+import org.jboss.logging.Logger;
 import org.junit.Test;
 
 public class UntestedCommitDetectionStrategyTest {
 	
+	private static final Logger LOGGER = Logger.getLogger(UntestedCommitDetectionStrategyTest.class);
+
 	@Test
 	public void testProcessing() throws Exception {
 		final String filename = "target/test-processing-jbossws-spi-" + System.currentTimeMillis() + ".csv";
@@ -55,19 +58,19 @@ public class UntestedCommitDetectionStrategyTest {
 			
 			// Log all merge commits to help identify PRs
 			List<RevCommit> mergeCommits = jgit.getMergeCommits();
-			System.out.println("Found " + mergeCommits.size() + " merge commits in the repository");
+			LOGGER.debug("Found " + mergeCommits.size() + " merge commits in the repository");
 			
 			for (RevCommit mergeCommit : mergeCommits) {
 				String prId = jgit.extractPullRequestId(mergeCommit);
 				if (prId != null) {
-					System.out.println("Merge commit: " + mergeCommit.getName().substring(0, 8) + 
+					LOGGER.debug("Merge commit: " + mergeCommit.getName().substring(0, 8) + 
 							" - " + mergeCommit.getShortMessage() + " (PR: " + prId + ")");
 				}
 			}
 			
 			// Get all PRs in the repository
 			Map<String, List<RevCommit>> allPRs = jgit.getAllPullRequests();
-			System.out.println("Found " + allPRs.size() + " pull requests in the repository");
+			LOGGER.debug("Found " + allPRs.size() + " pull requests in the repository");
 			
 			// Create a strategy instance
 			UntestedCommitDetectionStrategy strategy = new UntestedCommitDetectionStrategy(pathFilter);
@@ -92,10 +95,10 @@ public class UntestedCommitDetectionStrategyTest {
 			assertTrue("Could not find target file: " + targetFilePath, targetFile != null);
 			
 			// Log the file statistics
-			System.out.println("Testing PR-level test detection on file: " + targetFile.getPath());
-			System.out.println("Total updates: " + targetFile.getUpdates());
-			System.out.println("Untested updates: " + targetFile.getUntestedUpdates());
-			System.out.println("Updates since last tested: " + targetFile.getUpdatesSinceLastTested());
+			LOGGER.debug("Testing PR-level test detection on file: " + targetFile.getPath());
+			LOGGER.debug("Total updates: " + targetFile.getUpdates());
+			LOGGER.debug("Untested updates: " + targetFile.getUntestedUpdates());
+			LOGGER.debug("Updates since last tested: " + targetFile.getUpdatesSinceLastTested());
 			
 			// Verify that the file has been updated at least once
 			assertTrue("File should have at least one update", targetFile.getUpdates() > 0);
@@ -112,7 +115,7 @@ public class UntestedCommitDetectionStrategyTest {
 			Map<String, List<RevCommit>> fileCommitsByPR = jgit.getPullRequestsForFile(p);
 			
 			// Log PR groups for debugging
-			System.out.println("Found " + fileCommitsByPR.size() + " PR groups for file: " + p);
+			LOGGER.debug("Found " + fileCommitsByPR.size() + " PR groups for file: " + p);
 			
 			// Count how many PRs have commits that don't modify this file but do modify tests
 			int prsWithExternalTestCommits = 0;
@@ -128,7 +131,7 @@ public class UntestedCommitDetectionStrategyTest {
 					// Get ALL commits in the PR, not just those that modified this file
 					List<RevCommit> allCommitsInPR = jgit.getCommitsInPullRequest(prId);
 					
-					System.out.println("PR: " + prId + " with " + fileCommitsInPR.size() + 
+					LOGGER.debug("PR: " + prId + " with " + fileCommitsInPR.size() + 
 							" commits modifying this file (out of " + allCommitsInPR.size() + " total commits in PR)");
 					
 					// Check if there are commits in the PR that don't modify this file
@@ -158,7 +161,7 @@ public class UntestedCommitDetectionStrategyTest {
 							for (String file : changedFiles) {
 								if (file.contains("src/test")) {
 									otherCommitsAffectTests = true;
-									System.out.println("  Found commit that doesn't modify this file but affects tests: " + 
+									LOGGER.debug("  Found commit that doesn't modify this file but affects tests: " + 
 											commit.getName().substring(0, 8) + " - " + commit.getShortMessage());
 									break;
 								}
@@ -176,7 +179,7 @@ public class UntestedCommitDetectionStrategyTest {
 				}
 			}
 			
-			System.out.println("Found " + prsWithExternalTestCommits + " PRs with commits that don't modify this file but do modify tests");
+			LOGGER.debug("Found " + prsWithExternalTestCommits + " PRs with commits that don't modify this file but do modify tests");
 			
 			// Verify that our PR-level test detection is working
 			// The key assertion: the number of untested updates should be less than
@@ -205,8 +208,8 @@ public class UntestedCommitDetectionStrategyTest {
 				}
 			}
 			
-			System.out.println("Untested updates with PR-level detection: " + targetFile.getUntestedUpdates());
-			System.out.println("Untested updates with individual commit detection: " + individualCommitUntestedCount);
+			LOGGER.debug("Untested updates with PR-level detection: " + targetFile.getUntestedUpdates());
+			LOGGER.debug("Untested updates with individual commit detection: " + individualCommitUntestedCount);
 			
 			// This is the key assertion that proves our PR-level detection is working
 			// If they're equal, then our PR-level detection isn't having any effect
@@ -218,7 +221,7 @@ public class UntestedCommitDetectionStrategyTest {
 			if (prsWithExternalTestCommits > 0) {
 				assertTrue("PR-level detection should find tests in other commits", 
 						targetFile.getUntestedUpdates() < individualCommitUntestedCount);
-				System.out.println("Successfully detected tests in commits that don't modify the target file!");
+				LOGGER.debug("Successfully detected tests in commits that don't modify the target file!");
 			}
 			
 		} finally {

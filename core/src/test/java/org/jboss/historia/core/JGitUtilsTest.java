@@ -3,7 +3,6 @@ package org.jboss.historia.core;
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -11,8 +10,8 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.jboss.logging.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -227,7 +226,7 @@ public class JGitUtilsTest {
             String prId = jgitSpi.extractPullRequestId(mergeCommit);
             
             // Log the result for debugging
-            System.out.println("Extracted PR ID: " + prId + " from commit: " + mergeCommit.getShortMessage());
+            Logger.getLogger(this.getClass()).debug("Extracted PR ID: " + prId + " from commit: " + mergeCommit.getShortMessage());
         }
         
         // Test with different PR formats in commit messages
