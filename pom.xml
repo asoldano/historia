@@ -19,7 +19,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.jboss.historia</groupId>
   <artifactId>historia</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0.Alpha2</version>
   <name>Historia</name>
   <description>Historia - Tests and requirements history</description>
   <url>http://www.jboss.org/historia</url>
