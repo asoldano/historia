@@ -3,6 +3,7 @@ package org.jboss.historia.core;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,11 +16,31 @@ public class UntestedCommitDetectionStrategy {
 	private static final Logger LOGGER = Logger.getLogger(UntestedCommitDetectionStrategy.class);
 
 	public static class FileUpdates {
+		public static class Update {
+			private final long commitTime;
+			private final boolean tested;
+			
+			public Update(long commitTime, boolean tested) {
+				this.commitTime = commitTime;
+				this.tested = tested;
+			}
+			
+			public long getCommitTime() {
+				return commitTime;
+			}
+			
+			public boolean isTested() {
+				return tested;
+			}
+		}
+		
 		private final String prefix;
 		private final String path;
 		private long updates = 0;
 		private long untestedUpdates = 0;
 		private long updatesSinceLastTested = 0;
+		private final List<Update> updatesList = new ArrayList<>();
+		private boolean countersDirty = false; // Flag to track if counters need recalculation
 		
 		public FileUpdates(String prefix, String filePath) {
 			this.prefix = prefix;
@@ -38,13 +59,48 @@ public class UntestedCommitDetectionStrategy {
 			return updates;
 		}
 
-		public void incrementUpdates(boolean tested) {
-			this.updates = this.updates +1;
+		public void incrementUpdates(boolean tested, long commitTime) {
+			this.updatesList.add(new Update(commitTime, tested));
+			this.countersDirty = true;
+			
+			this.updates = this.updates + 1;
 			if (!tested) {
 				incrementUntestedUpdates();
-				if (this.updates == this.untestedUpdates)
-					incrementUpdatesSinceLastTested();
 			}
+			// Note: updatesSinceLastTested will be recalculated when needed
+		}
+		
+		private void recalculateCountersIfNeeded() {
+			if (!countersDirty) {
+				return; // No need to recalculate
+			}
+			
+			// Sort updates by commit time
+			updatesList.sort(Comparator.comparingLong(Update::getCommitTime));
+			
+			// Reset updatesSinceLastTested counter
+			this.updatesSinceLastTested = 0;
+			
+			// Recalculate updatesSinceLastTested
+			long lastTestedTime = 0;
+			boolean hasTestedUpdate = false;
+			
+			for (Update update : updatesList) {
+				if (update.isTested()) {
+					// This is a tested update
+					lastTestedTime = update.getCommitTime();
+					hasTestedUpdate = true;
+					this.updatesSinceLastTested = 0; // Reset counter
+				} else if (hasTestedUpdate && update.getCommitTime() > lastTestedTime) {
+					// This is an untested update after the last tested update
+					this.updatesSinceLastTested++;
+				} else if (!hasTestedUpdate) {
+					// No tested updates yet, all untested updates count
+					this.updatesSinceLastTested++;
+				}
+			}
+			
+			countersDirty = false; // Mark as clean
 		}
 
 		public long getUntestedUpdates() {
@@ -52,15 +108,12 @@ public class UntestedCommitDetectionStrategy {
 		}
 
 		public long getUpdatesSinceLastTested() {
+			recalculateCountersIfNeeded();
 			return updatesSinceLastTested;
 		}
 
 		public void incrementUntestedUpdates() {
 			this.untestedUpdates = this.untestedUpdates + 1;
-		}
-		
-		public void incrementUpdatesSinceLastTested() {
-			this.updatesSinceLastTested = this.updatesSinceLastTested + 1;
 		}
 		
 		public String toString() {
@@ -73,6 +126,7 @@ public class UntestedCommitDetectionStrategy {
 		}
 		
 		public void print(Writer w) throws IOException {
+			recalculateCountersIfNeeded();
 			w.append(prefix).append(",").append(path).append(",").append(String.valueOf(updates)).append(",")
 					.append(String.valueOf(untestedUpdates)).append(",")
 					.append(String.valueOf(Math.round(100 * (double) untestedUpdates / (double) updates))).append(",")
@@ -158,7 +212,7 @@ public class UntestedCommitDetectionStrategy {
 					LOGGER.debug("  Commit: " + commit.getName().substring(0, 8) + ": " + commit.getShortMessage() + 
 							" (Tested in PR: " + testedInPR + ")");
 				
-				fu.incrementUpdates(testedInPR);
+				fu.incrementUpdates(testedInPR, commit.getCommitTime());
 			}
 		}
 	}
