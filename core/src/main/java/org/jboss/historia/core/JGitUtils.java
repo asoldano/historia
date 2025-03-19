@@ -40,6 +40,12 @@ public class JGitUtils implements AutoCloseable {
 	private static Logger LOGGER = Logger.getLogger(JGitUtils.class);
 	private final Git git;
 	
+	// Cache fields
+	private List<RevCommit> allCommitsCache;
+	private List<RevCommit> mergeCommitsCache;
+	private Map<String, List<RevCommit>> pullRequestsCache;
+	private Map<String, List<RevCommit>> fileHistoryCache = new HashMap<>();
+	
 	public JGitUtils(String repositoryUri, String localRepoCloneURI) {
 		git = cloneRepo(repositoryUri, localRepoCloneURI);
 	}
@@ -70,6 +76,17 @@ public class JGitUtils implements AutoCloseable {
 		if (git != null) {
 			git.close();
 		}
+	}
+	
+	/**
+	 * Clear all caches.
+	 * This should be called if the repository state changes.
+	 */
+	public void clearCaches() {
+		allCommitsCache = null;
+		mergeCommitsCache = null;
+		pullRequestsCache = null;
+		fileHistoryCache.clear();
 	}
 	
 	public Set<String> getFilesOnHEAD() throws Exception
@@ -125,7 +142,20 @@ public class JGitUtils implements AutoCloseable {
 		}
 	}
 
+	/**
+	 * Get the commit history for a specific file.
+	 * Uses caching to improve performance for repeated calls.
+	 * 
+	 * @param filepath Path to the file
+	 * @return List of commits that modified the file
+	 */
 	public List<RevCommit> getFileHistory(String filepath) throws Exception {
+		// Check cache first
+		if (fileHistoryCache.containsKey(filepath)) {
+			// Return a copy to prevent modification of the cache
+			return new ArrayList<>(fileHistoryCache.get(filepath));
+		}
+		
 		Repository repo = git.getRepository();
 		Config config = repo.getConfig();
 		config.setBoolean("diff", null, "renames", true);
@@ -143,6 +173,10 @@ public class JGitUtils implements AutoCloseable {
 			for (RevCommit rc : rw) {
 				list.add(rc);
 			}
+			
+			// Cache the result
+			fileHistoryCache.put(filepath, list);
+			
 			return list;
 		}
 	}
@@ -231,23 +265,27 @@ public class JGitUtils implements AutoCloseable {
 	
 	/**
 	 * Get all commits in the repository.
+	 * Uses caching to improve performance for repeated calls.
 	 * 
 	 * @return List of all commits in the repository
 	 */
 	public List<RevCommit> getAllCommits() throws Exception {
-		List<RevCommit> allCommits = new ArrayList<>();
-		
-		try {
-			Iterable<RevCommit> commits = git.log().all().call();
-			for (RevCommit commit : commits) {
-				allCommits.add(commit);
+		if (allCommitsCache == null) {
+			allCommitsCache = new ArrayList<>();
+			
+			try {
+				Iterable<RevCommit> commits = git.log().all().call();
+				for (RevCommit commit : commits) {
+					allCommitsCache.add(commit);
+				}
+			} catch (Exception e) {
+				LOGGER.error("Error getting all commits", e);
+				throw e;
 			}
-		} catch (Exception e) {
-			LOGGER.error("Error getting all commits", e);
-			throw e;
 		}
 		
-		return allCommits;
+		// Return a copy to prevent modification of the cache
+		return new ArrayList<>(allCommitsCache);
 	}
 	
 	/**
@@ -276,20 +314,24 @@ public class JGitUtils implements AutoCloseable {
 	
 	/**
 	 * Get all merge commits in the repository.
+	 * Uses caching to improve performance for repeated calls.
 	 * 
 	 * @return List of merge commits
 	 */
 	public List<RevCommit> getMergeCommits() throws Exception {
-		List<RevCommit> allCommits = getAllCommits();
-		List<RevCommit> mergeCommits = new ArrayList<>();
-		
-		for (RevCommit commit : allCommits) {
-			if (isMergeCommit(commit)) {
-				mergeCommits.add(commit);
+		if (mergeCommitsCache == null) {
+			List<RevCommit> allCommits = getAllCommits();
+			mergeCommitsCache = new ArrayList<>();
+			
+			for (RevCommit commit : allCommits) {
+				if (isMergeCommit(commit)) {
+					mergeCommitsCache.add(commit);
+				}
 			}
 		}
 		
-		return mergeCommits;
+		// Return a copy to prevent modification of the cache
+		return new ArrayList<>(mergeCommitsCache);
 	}
 	
 	/**
@@ -332,28 +374,37 @@ public class JGitUtils implements AutoCloseable {
 	/**
 	 * Build a map of all pull requests in the repository, including all commits
 	 * that were part of each PR.
+	 * Uses caching to improve performance for repeated calls.
 	 * 
 	 * @return Map of PR ID to list of commits in that PR
 	 */
 	public Map<String, List<RevCommit>> getAllPullRequests() throws Exception {
-		List<RevCommit> mergeCommits = getMergeCommits();
-		Map<String, List<RevCommit>> allPRs = new HashMap<>();
-		
-		for (RevCommit mergeCommit : mergeCommits) {
-			String prId = extractPullRequestId(mergeCommit);
+		if (pullRequestsCache == null) {
+			List<RevCommit> mergeCommits = getMergeCommits();
+			pullRequestsCache = new HashMap<>();
 			
-			if (prId != null) {
-				// Get all commits that were merged in this PR
-				List<RevCommit> prCommits = getMergedCommits(mergeCommit);
+			for (RevCommit mergeCommit : mergeCommits) {
+				String prId = extractPullRequestId(mergeCommit);
 				
-				// Add the merge commit itself
-				prCommits.add(mergeCommit);
-				
-				allPRs.put(prId, prCommits);
+				if (prId != null) {
+					// Get all commits that were merged in this PR
+					List<RevCommit> prCommits = getMergedCommits(mergeCommit);
+					
+					// Add the merge commit itself
+					prCommits.add(mergeCommit);
+					
+					pullRequestsCache.put(prId, prCommits);
+				}
 			}
 		}
 		
-		return allPRs;
+		// Return a deep copy to prevent modification of the cache
+		Map<String, List<RevCommit>> result = new HashMap<>();
+		for (Map.Entry<String, List<RevCommit>> entry : pullRequestsCache.entrySet()) {
+			result.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+		}
+		
+		return result;
 	}
 	
 	/**
