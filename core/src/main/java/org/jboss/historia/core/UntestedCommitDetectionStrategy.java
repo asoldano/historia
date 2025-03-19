@@ -3,11 +3,12 @@ package org.jboss.historia.core;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
 import org.jboss.logging.Logger;
 
 public class UntestedCommitDetectionStrategy {
@@ -15,11 +16,31 @@ public class UntestedCommitDetectionStrategy {
 	private static final Logger LOGGER = Logger.getLogger(UntestedCommitDetectionStrategy.class);
 
 	public static class FileUpdates {
+		public static class Update {
+			private final long commitTime;
+			private final boolean tested;
+			
+			public Update(long commitTime, boolean tested) {
+				this.commitTime = commitTime;
+				this.tested = tested;
+			}
+			
+			public long getCommitTime() {
+				return commitTime;
+			}
+			
+			public boolean isTested() {
+				return tested;
+			}
+		}
+		
 		private final String prefix;
 		private final String path;
 		private long updates = 0;
 		private long untestedUpdates = 0;
 		private long updatesSinceLastTested = 0;
+		private final List<Update> updatesList = new ArrayList<>();
+		private boolean countersDirty = false; // Flag to track if counters need recalculation
 		
 		public FileUpdates(String prefix, String filePath) {
 			this.prefix = prefix;
@@ -38,13 +59,48 @@ public class UntestedCommitDetectionStrategy {
 			return updates;
 		}
 
-		public void incrementUpdates(boolean tested) {
-			this.updates = this.updates +1;
+		public void incrementUpdates(boolean tested, long commitTime) {
+			this.updatesList.add(new Update(commitTime, tested));
+			this.countersDirty = true;
+			
+			this.updates = this.updates + 1;
 			if (!tested) {
 				incrementUntestedUpdates();
-				if (this.updates == this.untestedUpdates)
-					incrementUpdatesSinceLastTested();
 			}
+			// Note: updatesSinceLastTested will be recalculated when needed
+		}
+		
+		private void recalculateCountersIfNeeded() {
+			if (!countersDirty) {
+				return; // No need to recalculate
+			}
+			
+			// Sort updates by commit time
+			updatesList.sort(Comparator.comparingLong(Update::getCommitTime));
+			
+			// Reset updatesSinceLastTested counter
+			this.updatesSinceLastTested = 0;
+			
+			// Recalculate updatesSinceLastTested
+			long lastTestedTime = 0;
+			boolean hasTestedUpdate = false;
+			
+			for (Update update : updatesList) {
+				if (update.isTested()) {
+					// This is a tested update
+					lastTestedTime = update.getCommitTime();
+					hasTestedUpdate = true;
+					this.updatesSinceLastTested = 0; // Reset counter
+				} else if (hasTestedUpdate && update.getCommitTime() > lastTestedTime) {
+					// This is an untested update after the last tested update
+					this.updatesSinceLastTested++;
+				} else if (!hasTestedUpdate) {
+					// No tested updates yet, all untested updates count
+					this.updatesSinceLastTested++;
+				}
+			}
+			
+			countersDirty = false; // Mark as clean
 		}
 
 		public long getUntestedUpdates() {
@@ -52,15 +108,12 @@ public class UntestedCommitDetectionStrategy {
 		}
 
 		public long getUpdatesSinceLastTested() {
+			recalculateCountersIfNeeded();
 			return updatesSinceLastTested;
 		}
 
 		public void incrementUntestedUpdates() {
 			this.untestedUpdates = this.untestedUpdates + 1;
-		}
-		
-		public void incrementUpdatesSinceLastTested() {
-			this.updatesSinceLastTested = this.updatesSinceLastTested + 1;
 		}
 		
 		public String toString() {
@@ -73,6 +126,7 @@ public class UntestedCommitDetectionStrategy {
 		}
 		
 		public void print(Writer w) throws IOException {
+			recalculateCountersIfNeeded();
 			w.append(prefix).append(",").append(path).append(",").append(String.valueOf(updates)).append(",")
 					.append(String.valueOf(untestedUpdates)).append(",")
 					.append(String.valueOf(Math.round(100 * (double) untestedUpdates / (double) updates))).append(",")
@@ -120,34 +174,46 @@ public class UntestedCommitDetectionStrategy {
 	private void processFile(FileUpdates fu, JGitUtils jgit, String f, boolean debug) throws Exception {
 		if (debug)
 			LOGGER.debug("F: " + f);
-		List<RevCommit> commitHistory = jgit.getFileHistory(f);
-		int s = commitHistory.size();
-		for (int i = 0; i < s - 1; i++) {
-			RevCommit commit = commitHistory.get(i);
-			if (debug)
-				LOGGER.debug(" Commit #" + (i + 1) + "- " + commit.getName() + ": " + commit.getShortMessage());
-			fu.incrementUpdates(affectsTests(jgit, fu, jgit.getParentCommitTree(commit), commit.getTree()));
-		}
+		
+		// Find all PRs that include changes to this file
+		Map<String, List<RevCommit>> fileCommitsByPR = jgit.getPullRequestsForFile(f);
+		
 		if (debug)
-			LOGGER.debug(" Commit #" + s + ": " + commitHistory.get(s - 1).getShortMessage());
-		fu.incrementUpdates(affectsTests(jgit, fu, null, commitHistory.get(s - 1).getTree()));
-	}
-	
-	private boolean affectsTests(JGitUtils jgit, FileUpdates fu, RevTree parentCommitTree, RevTree commitTree) throws Exception {
-		Set<String> cfs;
-		if (parentCommitTree == null) {
-			cfs = jgit.getChangedFiles(commitTree);
-		} else {
-			cfs = jgit.getChangedFiles(parentCommitTree, commitTree);
-		}
-		boolean debug = LOGGER.isDebugEnabled();
-		for (String cf : cfs) {
-			if (debug)
-				LOGGER.debug("    " + cf);
-			if (cf.contains("src/test")) {
-				return true;
+			LOGGER.debug("Found " + fileCommitsByPR.size() + " pull requests/individual commits for file " + f);
+		
+		// Process each pull request that modified this file
+		for (Map.Entry<String, List<RevCommit>> entry : fileCommitsByPR.entrySet()) {
+			String prId = entry.getKey();
+			List<RevCommit> fileCommitsInPR = entry.getValue();
+			
+			// Check if this is a real PR ID (not a commit hash used as fallback)
+			boolean isRealPR = !prId.equals(fileCommitsInPR.get(0).getName());
+			
+			// If this is a real PR, get ALL commits in the PR, not just those that modified this file
+			List<RevCommit> allCommitsInPR;
+			if (isRealPR) {
+				allCommitsInPR = jgit.getCommitsInPullRequest(prId);
+				if (debug)
+					LOGGER.debug(" Processing PR: " + prId + " with " + fileCommitsInPR.size() + 
+							" commits modifying this file (out of " + allCommitsInPR.size() + " total commits in PR)");
+			} else {
+				// If not a real PR, just use the commit itself
+				allCommitsInPR = fileCommitsInPR;
+				if (debug)
+					LOGGER.debug(" Processing individual commit: " + prId);
+			}
+			
+			// Check if any commit in this PR affects tests
+			boolean testedInPR = jgit.pullRequestAffectsTests(allCommitsInPR);
+			
+			// For each commit that modified this file, increment updates with the same tested status
+			for (RevCommit commit : fileCommitsInPR) {
+				if (debug)
+					LOGGER.debug("  Commit: " + commit.getName().substring(0, 8) + ": " + commit.getShortMessage() + 
+							" (Tested in PR: " + testedInPR + ")");
+				
+				fu.incrementUpdates(testedInPR, commit.getCommitTime());
 			}
 		}
-		return false;
 	}
 }
