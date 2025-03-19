@@ -1,5 +1,6 @@
 package org.jboss.historia.core;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
@@ -105,6 +106,7 @@ public class UntestedCommitDetectionStrategyTest {
 			
 			// Verify we have some commit history
 			assertTrue("File should have commit history", commitHistory.size() > 0);
+			assertEquals("File should have commit history", targetFile.getUpdates(), commitHistory.size());
 			
 			// Find all PRs that include changes to this file
 			Map<String, List<RevCommit>> fileCommitsByPR = jgit.getPullRequestsForFile(p);

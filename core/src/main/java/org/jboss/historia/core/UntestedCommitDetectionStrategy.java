@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
 import org.jboss.logging.Logger;
 
 public class UntestedCommitDetectionStrategy {
@@ -122,9 +121,6 @@ public class UntestedCommitDetectionStrategy {
 		if (debug)
 			LOGGER.debug("F: " + f);
 		
-		// Get file history
-		List<RevCommit> commitHistory = jgit.getFileHistory(f);
-		
 		// Find all PRs that include changes to this file
 		Map<String, List<RevCommit>> fileCommitsByPR = jgit.getPullRequestsForFile(f);
 		
@@ -165,23 +161,5 @@ public class UntestedCommitDetectionStrategy {
 				fu.incrementUpdates(testedInPR);
 			}
 		}
-	}
-	
-	private boolean affectsTests(JGitUtils jgit, FileUpdates fu, RevTree parentCommitTree, RevTree commitTree) throws Exception {
-		Set<String> cfs;
-		if (parentCommitTree == null) {
-			cfs = jgit.getChangedFiles(commitTree);
-		} else {
-			cfs = jgit.getChangedFiles(parentCommitTree, commitTree);
-		}
-		boolean debug = LOGGER.isDebugEnabled();
-		for (String cf : cfs) {
-			if (debug)
-				LOGGER.debug("    " + cf);
-			if (cf.contains("src/test")) {
-				return true;
-			}
-		}
-		return false;
 	}
 }
