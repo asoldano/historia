@@ -1,0 +1,109 @@
+{#include layout}
+{#title}Historia - Git Repository Analysis{/title}
+
+{#content}
+<div class="px-4 py-5 my-5 text-center">
+    <h1 class="display-5 fw-bold">Historia</h1>
+    <div class="col-lg-6 mx-auto">
+        <p class="lead mb-4">
+            Analyze git repositories to detect untested commits and improve code quality.
+        </p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            {#if user}
+            <a href="/requests/new" class="btn btn-primary btn-lg px-4 gap-3">
+                <i class="fas fa-plus"></i> New Analysis
+            </a>
+            <a href="/requests" class="btn btn-outline-secondary btn-lg px-4">
+                <i class="fas fa-list"></i> View Requests
+            </a>
+            {#else}
+            <a href="/login" class="btn btn-primary btn-lg px-4 gap-3">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+            {/if}
+        </div>
+    </div>
+</div>
+
+<div class="container px-4 py-5">
+    <h2 class="pb-2 border-bottom">Features</h2>
+    <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+        <div class="col d-flex align-items-start">
+            <div class="icon-square text-bg-light d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3">
+                <i class="fas fa-code-branch"></i>
+            </div>
+            <div>
+                <h3 class="fs-2">Git Repository Analysis</h3>
+                <p>Analyze any git repository to identify commits that haven't been properly tested.</p>
+            </div>
+        </div>
+        <div class="col d-flex align-items-start">
+            <div class="icon-square text-bg-light d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <div>
+                <h3 class="fs-2">Visualization</h3>
+                <p>View interactive visualizations of analysis results to identify patterns and areas for improvement.</p>
+            </div>
+        </div>
+        <div class="col d-flex align-items-start">
+            <div class="icon-square text-bg-light d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <div>
+                <h3 class="fs-2">Asynchronous Processing</h3>
+                <p>Submit analysis requests and track their progress while they run in the background.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container px-4 py-5">
+    <h2 class="pb-2 border-bottom">How It Works</h2>
+    <div class="row g-4 py-5">
+        <div class="col-md-12">
+            <ol class="list-group list-group-numbered mb-4">
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div class="ms-2 me-auto">
+                        <div class="fw-bold">Submit a Repository</div>
+                        Enter the URL of a git repository you want to analyze.
+                    </div>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div class="ms-2 me-auto">
+                        <div class="fw-bold">Analysis Runs in Background</div>
+                        The system clones the repository and analyzes commit history to identify untested commits.
+                    </div>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div class="ms-2 me-auto">
+                        <div class="fw-bold">View Results</div>
+                        Once complete, view detailed results and visualizations to understand testing coverage.
+                    </div>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div class="ms-2 me-auto">
+                        <div class="fw-bold">Download Reports</div>
+                        Download CSV reports for further analysis or integration with other tools.
+                    </div>
+                </li>
+            </ol>
+            
+            {#if user}
+            <div class="text-center">
+                <a href="/requests/new" class="btn btn-primary btn-lg">
+                    <i class="fas fa-rocket"></i> Get Started
+                </a>
+            </div>
+            {#else}
+            <div class="text-center">
+                <a href="/login" class="btn btn-primary btn-lg">
+                    <i class="fas fa-sign-in-alt"></i> Login to Get Started
+                </a>
+            </div>
+            {/if}
+        </div>
+    </div>
+</div>
+{/content}
+{/include}
