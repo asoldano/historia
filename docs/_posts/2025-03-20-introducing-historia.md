@@ -1,5 +1,4 @@
 ---
-layout: post
 title: "Introducing Historia: A Tool for Tracking Test Coverage in Git Repositories"
 date: 2025-03-20
 ---
