@@ -1,7 +1,6 @@
 ---
 title: Historia Blog
 description: Historia project's blog
-nav_order: 1
 ---
 
 # Welcome to the Historia project's blog

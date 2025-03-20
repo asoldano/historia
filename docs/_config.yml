@@ -1,6 +1,4 @@
-theme: "just-the-docs"
+theme: jekyll-theme-cayman
 title: Historia
 description: Project Historia - News & Roadmap
 baseurl: "/historia"
-nav_order: 1
-search_enabled: true
