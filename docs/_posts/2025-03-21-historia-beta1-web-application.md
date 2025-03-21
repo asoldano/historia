@@ -13,6 +13,8 @@ The centerpiece of this release is the new web application module, which provide
 
 ### User-Friendly Interface
 
+![Historia Web Application Dashboard](/historia/images/historia-web-app-1.png)
+
 Gone are the days of running Historia exclusively through command-line tools. The new web interface allows you to:
 
 - Submit analysis requests through an intuitive web form
@@ -34,6 +36,8 @@ The web application introduces a robust asynchronous processing system that:
 This means you can submit an analysis for a large repository and continue with other work while Historia processes it in the background.
 
 ### Interactive Visualizations
+
+![Historia Interactive Visualizations](/historia/images/historia-web-app-2.png)
 
 One of the most exciting additions is the new visualization capabilities:
 
@@ -85,6 +89,8 @@ The application follows a clean, layered architecture:
 - **Templates** - HTML templates
 
 ## Getting Started with the Web Application
+
+![Historia New Analysis Request Form](/historia/images/historia-web-app-3.png)
 
 Getting started with the Historia web application is straightforward:
 
