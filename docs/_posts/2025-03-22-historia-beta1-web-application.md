@@ -1,5 +1,4 @@
 ---
-layout: post
 title: "Historia 1.0.0.Beta1: Introducing the Web Application"
 date: 2025-03-22
 ---
