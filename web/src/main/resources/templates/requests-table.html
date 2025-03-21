@@ -26,20 +26,16 @@
                 {#if request.owner}<br><small class="text-muted">by {request.owner}</small>{/if}
             </td>
             <td>
-                {#if request.status == 'COMPLETED' || request.status == 'FAILED'}
-                    {#if request.durationSeconds}
-                        {#with request.durationSeconds}
-                            {#if this > 3600}
-                                {this / 3600}h {(this % 3600) / 60}m {this % 60}s
-                            {#else if this > 60}
-                                {this / 60}m {this % 60}s
-                            {#else}
-                                {this}s
-                            {/if}
-                        {/with}
-                    {#else}
-                        -
-                    {/if}
+                {#if request.durationSeconds}
+                    {#with request.durationSeconds}
+                        {#if this > 3600}
+                            {this / 3600}h {(this % 3600) / 60}m {this % 60}s
+                        {#else if this > 60}
+                            {this / 60}m {this % 60}s
+                        {#else}
+                            {this}s
+                        {/if}
+                    {/with}
                 {#else}
                     -
                 {/if}
