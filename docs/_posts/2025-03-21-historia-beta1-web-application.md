@@ -37,7 +37,7 @@ This means you can submit an analysis for a large repository and continue with o
 
 ### Interactive Visualizations
 
-![Historia Interactive Visualizations](/historia/images/historia-web-app-2.png)
+![Historia Interactive Visualizations](/historia/images/historia-web-app-3.png)
 
 One of the most exciting additions is the new visualization capabilities:
 
@@ -89,8 +89,6 @@ The application follows a clean, layered architecture:
 - **Templates** - HTML templates
 
 ## Getting Started with the Web Application
-
-![Historia New Analysis Request Form](/historia/images/historia-web-app-3.png)
 
 Getting started with the Historia web application is straightforward:
 
