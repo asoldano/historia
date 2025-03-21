@@ -81,13 +81,13 @@
             <div class="col-md-6">
                 <h3>Actions</h3>
                 <div class="d-grid gap-2">
-                    {#if request.status == 'PENDING'}
+                    {#if request.status.toString() == 'PENDING'}
                     <button id="cancelRequest" class="btn btn-warning">
                         <i class="fas fa-ban"></i> Cancel Request
                     </button>
                     {/if}
                     
-                    {#if request.status == 'COMPLETED'}
+                    {#if request.status.toString() == 'COMPLETED'}
                     <a href="/api/requests/{request.id}/result" class="btn btn-success" download>
                         <i class="fas fa-download"></i> Download CSV
                     </a>
@@ -103,7 +103,7 @@
                     {/if}
                 </div>
                 
-                {#if request.status == 'FAILED' && request.errorMessage}
+                {#if request.status.toString() == 'FAILED' && request.errorMessage}
                 <div class="mt-4">
                     <h3>Error</h3>
                     <div class="alert alert-danger">
@@ -116,7 +116,7 @@
     </div>
 </div>
 
-{#if request.status == 'COMPLETED' && resultPreview}
+{#if request.status.toString() == 'COMPLETED' && resultPreview}
 <div class="card">
     <div class="card-header">
         <h2 class="mb-0">Result Preview</h2>

@@ -46,7 +46,7 @@
                         <i class="fas fa-eye"></i>
                     </a>
                     
-                    {#if request.status == 'COMPLETED'}
+                    {#if request.status.toString() == 'COMPLETED'}
                     <a href="/api/requests/{request.id}/result" class="btn btn-sm btn-outline-success" title="Download CSV" download>
                         <i class="fas fa-download"></i>
                     </a>
@@ -55,7 +55,7 @@
                     </a>
                     {/if}
                     
-                    {#if request.status == 'PENDING'}
+                    {#if request.status.toString() == 'PENDING'}
                     <button class="btn btn-sm btn-outline-warning cancel-request" data-id="{request.id}" title="Cancel request">
                         <i class="fas fa-ban"></i>
                     </button>
@@ -69,7 +69,7 @@
                 </div>
             </td>
         </tr>
-        {#if request.status == 'FAILED' && request.errorMessage}
+                    {#if request.status.toString() == 'FAILED' && request.errorMessage}
         <tr class="table-danger">
             <td colspan="6">
                 <strong>Error:</strong> {request.errorMessage}
