@@ -178,13 +178,21 @@ public class AnalysisService {
      */
     @Transactional
     public void processRequest(AnalysisRequest request) {
-        LOG.info("Processing request: " + request.getId());
+        Long requestId = request.getId();
+        LOG.info("Processing request: " + requestId);
         
         try {
+            // Reload the entity to ensure it's attached to the current persistence context
+            AnalysisRequest attachedRequest = repository.findById(requestId);
+            if (attachedRequest == null) {
+                LOG.error("Request not found: " + requestId);
+                return;
+            }
+            
             // Update status to PROCESSING
-            request.setStatus(RequestStatus.PROCESSING);
-            request.setStartedAt(LocalDateTime.now());
-            repository.persist(request);
+            attachedRequest.setStatus(RequestStatus.PROCESSING);
+            attachedRequest.setStartedAt(LocalDateTime.now());
+            repository.persist(attachedRequest);
             
             // Increment active processes counter
             activeProcesses.incrementAndGet();
@@ -196,24 +204,24 @@ public class AnalysisService {
             }
             
             // Create a unique output file path
-            String outputFileName = "analysis-" + request.getId() + "-" + 
+            String outputFileName = "analysis-" + requestId + "-" + 
                                    System.currentTimeMillis() + ".csv";
             String outputFilePath = Paths.get(resultsDirectory, outputFileName).toString();
             
             // Run the analysis asynchronously
             CompletableFuture.runAsync(() -> {
                 try {
-                    runAnalysis(request, outputFilePath);
+                    runAnalysis(attachedRequest, outputFilePath);
                     
                     // Update status to COMPLETED
-                    updateRequestStatus(request.getId(), RequestStatus.COMPLETED, 
+                    updateRequestStatus(requestId, RequestStatus.COMPLETED, 
                                        outputFilePath, null);
                     
                 } catch (Exception e) {
                     LOG.error("Error processing request: " + request.getId(), e);
                     
                     // Update status to FAILED
-                    updateRequestStatus(request.getId(), RequestStatus.FAILED, 
+                    updateRequestStatus(requestId, RequestStatus.FAILED, 
                                        null, e.getMessage());
                 } finally {
                     // Decrement active processes counter
@@ -222,10 +230,14 @@ public class AnalysisService {
             });
             
         } catch (Exception e) {
-            LOG.error("Error starting request processing: " + request.getId(), e);
-            request.setStatus(RequestStatus.FAILED);
-            request.setErrorMessage("Failed to start processing: " + e.getMessage());
-            repository.persist(request);
+            LOG.error("Error starting request processing: " + requestId, e);
+            // Reload the entity again in case of exception
+            AnalysisRequest attachedRequest = repository.findById(requestId);
+            if (attachedRequest != null) {
+                attachedRequest.setStatus(RequestStatus.FAILED);
+                attachedRequest.setErrorMessage("Failed to start processing: " + e.getMessage());
+                repository.persist(attachedRequest);
+            }
             
             // Decrement active processes counter
             activeProcesses.decrementAndGet();
