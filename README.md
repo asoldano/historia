@@ -45,7 +45,7 @@ mvn clean install
 Historia can be run using the following command:
 
 ```bash
-java -cp core/target/historia-core-1.0.0-SNAPSHOT.jar org.jboss.historia.core.Runner <strategy class> <output file> <path filter> <git repo uri> <local repo clone uri>
+java -cp core/target/historia-core-1.0.0.Beta1.jar org.jboss.historia.core.Runner <strategy class> <output file> <path filter> <git repo uri> <local repo clone uri>
 ```
 
 ### Parameters
@@ -59,7 +59,7 @@ java -cp core/target/historia-core-1.0.0-SNAPSHOT.jar org.jboss.historia.core.Ru
 ### Example
 
 ```bash
-java -cp core/target/historia-core-1.0.0-SNAPSHOT.jar org.jboss.historia.core.Runner org.jboss.historia.core.UntestedCommitDetectionStrategy ./output.csv src/main/java https://github.com/jbossws/jbossws-spi.git target/jgit/jbossws-spi
+java -cp core/target/historia-core-1.0.0.Beta1.jar org.jboss.historia.core.Runner org.jboss.historia.core.UntestedCommitDetectionStrategy ./output.csv src/main/java https://github.com/jbossws/jbossws-spi.git target/jgit/jbossws-spi
 ```
 
 ## Output Format
