@@ -85,6 +85,9 @@
     <jboss-logging-processor.version>2.2.1.Final</jboss-logging-processor.version>
     <test.resources.directory>${project.basedir}/src/test/resources</test.resources.directory>
     <server.home>target</server.home>
+    
+    <!-- Quarkus version for web module -->
+    <quarkus.version>3.2.0.Final</quarkus.version>
   </properties>
 
   <!-- DistributionManagement -->
@@ -120,10 +123,26 @@
 
   <modules>
     <module>core</module>
+    <module>web</module>
   </modules>
 
   <dependencyManagement>
     <dependencies>
+      <!-- Quarkus BOM for web module -->
+      <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-bom</artifactId>
+        <version>${quarkus.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      
+      <!-- Historia modules -->
+      <dependency>
+        <groupId>org.jboss.historia</groupId>
+        <artifactId>historia-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     
       <dependency>
         <groupId>org.eclipse.jgit</groupId>

@@ -63,13 +63,43 @@ public class JGitUtils implements AutoCloseable {
 		File file = new File(localRepoCloneURI);
 		try {
 			if (file.exists()) {
-				return Git.open(file);
+				try {
+					// Try to open the existing repository
+					return Git.open(file);
+				} catch (Exception e) {
+					// If opening fails, delete the directory and clone again
+					LOGGER.warn("Failed to open existing repository at " + localRepoCloneURI + ". Deleting and cloning again.", e);
+					deleteDirectory(file);
+					return Git.cloneRepository().setURI(repositoryUri).setDirectory(file).call();
+				}
 			} else {
 				return Git.cloneRepository().setURI(repositoryUri).setDirectory(file).call();
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * Recursively delete a directory.
+	 * 
+	 * @param directory The directory to delete
+	 * @return true if successful, false otherwise
+	 */
+	private static boolean deleteDirectory(File directory) {
+		if (directory.exists()) {
+			File[] files = directory.listFiles();
+			if (files != null) {
+				for (File file : files) {
+					if (file.isDirectory()) {
+						deleteDirectory(file);
+					} else {
+						file.delete();
+					}
+				}
+			}
+		}
+		return directory.delete();
 	}
 	
 	public void close() throws Exception {

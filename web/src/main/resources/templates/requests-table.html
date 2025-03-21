@@ -1,0 +1,73 @@
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Repository</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>Duration</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {#for request in requests}
+        <tr>
+            <td>{request.id}</td>
+            <td>
+                <span title="{request.gitRepoUrl}">{request.gitRepoUrl.length() > 50 ? request.gitRepoUrl.substring(0, 47) + '...' : request.gitRepoUrl}</span>
+                <br>
+                <small class="text-muted">Path filter: {request.pathFilter}</small>
+            </td>
+            <td>
+                <span class="badge status-badge status-{request.status.toString().toLowerCase()}">{request.status}</span>
+            </td>
+            <td>
+                <span title="{request.submittedAt}">{#if request.submittedAt}{request.submittedAt.format('yyyy-MM-dd HH:mm:ss')}{/if}</span>
+                {#if request.owner}<br><small class="text-muted">by {request.owner}</small>{/if}
+            </td>
+            <td>
+                {#if request.formattedDuration}
+                    {request.formattedDuration}
+                {#else}
+                    -
+                {/if}
+            </td>
+            <td>
+                <div class="btn-group" role="group">
+                    <a href="/requests/{request.id}" class="btn btn-sm btn-outline-secondary" title="View details">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    
+                    {#if request.status.toString() == 'COMPLETED'}
+                    <a href="/api/requests/{request.id}/result" class="btn btn-sm btn-outline-success" title="Download CSV" download>
+                        <i class="fas fa-download"></i>
+                    </a>
+                    <a href="/requests/{request.id}/visualization" class="btn btn-sm btn-outline-primary" title="View visualization">
+                        <i class="fas fa-chart-bar"></i>
+                    </a>
+                    {/if}
+                    
+                    {#if request.status.toString() == 'PENDING'}
+                    <button class="btn btn-sm btn-outline-warning cancel-request" data-id="{request.id}" title="Cancel request">
+                        <i class="fas fa-ban"></i>
+                    </button>
+                    {/if}
+                    
+                    {#if user.isAdmin}
+                    <button class="btn btn-sm btn-outline-danger delete-request" data-id="{request.id}" title="Delete request">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    {/if}
+                </div>
+            </td>
+        </tr>
+                    {#if request.status.toString() == 'FAILED' && request.errorMessage}
+        <tr class="table-danger">
+            <td colspan="6">
+                <strong>Error:</strong> {request.errorMessage}
+            </td>
+        </tr>
+        {/if}
+        {/for}
+    </tbody>
+</table>

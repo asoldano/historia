@@ -1,0 +1,393 @@
+{#include layout}
+{#title}Visualization - Historia{/title}
+
+{#head}
+<!-- Vega and Vega-Lite for visualization -->
+<script src="https://cdn.jsdelivr.net/npm/vega@5.22.1"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@5.6.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@6.21.0"></script>
+<style>
+    #vis, #vis-scatter, #vis-bar {
+        width: 100%;
+        height: 600px;
+        margin-top: 20px;
+    }
+    
+    .vega-actions {
+        margin-top: 10px;
+        text-align: right;
+    }
+</style>
+{/head}
+
+{#content}
+<div class="row mb-4" data-request-id="{request.id}">
+    <div class="col-md-8">
+        <h1>Visualization</h1>
+        <h2 class="text-muted">Request #{request.id}</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="/requests/{request.id}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Request
+        </a>
+        <a href="/api/requests/{request.id}/result" class="btn btn-success" download>
+            <i class="fas fa-download"></i> Download CSV
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs" id="visualizationTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="scatter-tab" data-bs-toggle="tab" data-bs-target="#scatter" type="button" role="tab" aria-controls="scatter" aria-selected="true">
+                    Scatter Plot
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="bar-tab" data-bs-toggle="tab" data-bs-target="#bar" type="button" role="tab" aria-controls="bar" aria-selected="false">
+                    Bar Chart
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#data" type="button" role="tab" aria-controls="data" aria-selected="false">
+                    Data Table
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content" id="visualizationTabsContent">
+            <div class="tab-pane fade show active" id="scatter" role="tabpanel" aria-labelledby="scatter-tab">
+                <div class="row">
+                    <div class="col-md-9">
+                        <div id="vis-scatter"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Options</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="x-axis" class="form-label">X Axis</label>
+                                    <select class="form-select" id="x-axis">
+                                        <option value="# updates" selected>Total Updates</option>
+                                        <option value="# untested updates">Untested Updates</option>
+                                        <option value="# untested updates %">Untested Updates %</option>
+                                        <option value="# updates since last tested">Updates Since Last Tested</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="y-axis" class="form-label">Y Axis</label>
+                                    <select class="form-select" id="y-axis">
+                                        <option value="# updates">Total Updates</option>
+                                        <option value="# untested updates">Untested Updates</option>
+                                        <option value="# untested updates %" selected>Untested Updates %</option>
+                                        <option value="# updates since last tested">Updates Since Last Tested</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="color-by" class="form-label">Color By</label>
+                                    <select class="form-select" id="color-by">
+                                        <option value="Module" selected>Module</option>
+                                        <option value="# untested updates %">Untested Updates %</option>
+                                        <option value="# updates since last tested">Updates Since Last Tested</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="size-by" class="form-label">Size By</label>
+                                    <select class="form-select" id="size-by">
+                                        <option value="# updates" selected>Total Updates</option>
+                                        <option value="# untested updates">Untested Updates</option>
+                                        <option value="# untested updates %">Untested Updates %</option>
+                                        <option value="# updates since last tested">Updates Since Last Tested</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="bar" role="tabpanel" aria-labelledby="bar-tab">
+                <div class="row">
+                    <div class="col-md-9">
+                        <div id="vis-bar"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Options</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="bar-x-axis" class="form-label">X Axis</label>
+                                    <select class="form-select" id="bar-x-axis">
+                                        <option value="Module" selected>Module</option>
+                                        <option value="File">File</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="bar-y-axis" class="form-label">Y Axis</label>
+                                    <select class="form-select" id="bar-y-axis">
+                                        <option value="# updates">Total Updates</option>
+                                        <option value="# untested updates">Untested Updates</option>
+                                        <option value="# untested updates %" selected>Untested Updates %</option>
+                                        <option value="# updates since last tested">Updates Since Last Tested</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="bar-color-by" class="form-label">Color By</label>
+                                    <select class="form-select" id="bar-color-by">
+                                        <option value="Module" selected>Module</option>
+                                        <option value="# untested updates %">Untested Updates %</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="bar-sort-by" class="form-label">Sort By</label>
+                                    <select class="form-select" id="bar-sort-by">
+                                        <option value="x" selected>X Axis (Alphabetical)</option>
+                                        <option value="y">Y Axis (Value)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="data" role="tabpanel" aria-labelledby="data-tab">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="data-table">
+                        <thead>
+                            <tr>
+                                <th>Module</th>
+                                <th>File</th>
+                                <th>Total Updates</th>
+                                <th>Untested Updates</th>
+                                <th>Untested Updates %</th>
+                                <th>Updates Since Last Tested</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{/content}
+
+{#scripts}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get request ID from data attribute
+        var requestId = document.querySelector('.row[data-request-id]').getAttribute('data-request-id');
+        var csvUrl = '/api/requests/' + requestId + '/result';
+        
+        // Load the CSV data
+        fetch(csvUrl)
+            .then(function(response) {
+                return response.text();
+            })
+            .then(function(csvText) {
+                // Parse CSV
+                var data = parseCSV(csvText);
+                
+                // Populate data table
+                populateDataTable(data);
+                
+                // Create visualizations
+                createScatterPlot(data);
+                createBarChart(data);
+                
+                // Set up event listeners for visualization options
+                setupEventListeners(data);
+            })
+            .catch(function(error) {
+                console.error('Error loading data:', error);
+                alert('Error loading data: ' + error.message);
+            });
+        
+        // Parse CSV text into array of objects
+        function parseCSV(csvText) {
+            var lines = csvText.trim().split('\n');
+            var headers = lines[0].split(',');
+            
+            var data = [];
+            for (var i = 1; i < lines.length; i++) {
+                var values = lines[i].split(',');
+                var row = {};
+                
+                for (var j = 0; j < headers.length; j++) {
+                    var value = values[j];
+                    // Convert numeric values
+                    if (j > 1) {
+                        value = parseFloat(value);
+                    }
+                    row[headers[j]] = value;
+                }
+                
+                data.push(row);
+            }
+            
+            return data;
+        }
+        
+        // Populate data table
+        function populateDataTable(data) {
+            var tbody = document.querySelector('#data-table tbody');
+            tbody.innerHTML = '';
+            
+            data.forEach(function(row) {
+                var tr = document.createElement('tr');
+                
+                tr.innerHTML = 
+                    '<td>' + row.Module + '</td>' +
+                    '<td>' + row.File + '</td>' +
+                    '<td>' + row['# updates'] + '</td>' +
+                    '<td>' + row['# untested updates'] + '</td>' +
+                    '<td>' + row['# untested updates %'] + '%</td>' +
+                    '<td>' + row['# updates since last tested'] + '</td>';
+                
+                tbody.appendChild(tr);
+            });
+        }
+        
+        // Create scatter plot
+        function createScatterPlot(data) {
+            var xField = document.getElementById('x-axis').value;
+            var yField = document.getElementById('y-axis').value;
+            var colorField = document.getElementById('color-by').value;
+            var sizeField = document.getElementById('size-by').value;
+            
+            var spec = {
+                "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                "data": { "values": data },
+                "mark": "circle",
+                "width": "container",
+                "height": 500,
+                "encoding": {
+                    "x": {
+                        "field": xField,
+                        "type": "quantitative",
+                        "title": xField
+                    },
+                    "y": {
+                        "field": yField,
+                        "type": "quantitative",
+                        "title": yField
+                    },
+                    "color": {
+                        "field": colorField,
+                        "type": colorField === "Module" ? "nominal" : "quantitative"
+                    },
+                    "size": {
+                        "field": sizeField,
+                        "type": "quantitative",
+                        "scale": {
+                            "range": [20, 500]
+                        }
+                    },
+                    "tooltip": [
+                        {"field": "Module", "type": "nominal"},
+                        {"field": "File", "type": "nominal"},
+                        {"field": "# updates", "type": "quantitative", "title": "Total Updates"},
+                        {"field": "# untested updates", "type": "quantitative", "title": "Untested Updates"},
+                        {"field": "# untested updates %", "type": "quantitative", "title": "Untested Updates %"},
+                        {"field": "# updates since last tested", "type": "quantitative", "title": "Updates Since Last Tested"}
+                    ]
+                }
+            };
+            
+            vegaEmbed('#vis-scatter', spec, JSON.parse('{"actions": true}'));
+        }
+        
+        // Create bar chart
+        function createBarChart(data) {
+            var xField = document.getElementById('bar-x-axis').value;
+            var yField = document.getElementById('bar-y-axis').value;
+            var colorField = document.getElementById('bar-color-by').value;
+            var sortField = document.getElementById('bar-sort-by').value;
+            
+            var spec = {
+                "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                "data": { "values": data },
+                "mark": "bar",
+                "width": "container",
+                "height": 500,
+                "encoding": {
+                    "x": {
+                        "field": xField,
+                        "type": "nominal",
+                        "title": xField,
+                        "sort": sortField === "y" ? {
+                            "field": yField,
+                            "op": "sum",
+                            "order": "descending"
+                        } : undefined
+                    },
+                    "y": {
+                        "field": yField,
+                        "type": "quantitative",
+                        "title": yField
+                    },
+                    "color": {
+                        "field": colorField,
+                        "type": colorField === "Module" ? "nominal" : "quantitative"
+                    },
+                    "tooltip": [
+                        {"field": "Module", "type": "nominal"},
+                        {"field": "File", "type": "nominal"},
+                        {"field": "# updates", "type": "quantitative", "title": "Total Updates"},
+                        {"field": "# untested updates", "type": "quantitative", "title": "Untested Updates"},
+                        {"field": "# untested updates %", "type": "quantitative", "title": "Untested Updates %"},
+                        {"field": "# updates since last tested", "type": "quantitative", "title": "Updates Since Last Tested"}
+                    ]
+                }
+            };
+            
+            vegaEmbed('#vis-bar', spec, JSON.parse('{"actions": true}'));
+        }
+        
+        // Set up event listeners for visualization options
+        function setupEventListeners(data) {
+            // Scatter plot options
+            document.getElementById('x-axis').addEventListener('change', function() {
+                createScatterPlot(data);
+            });
+            
+            document.getElementById('y-axis').addEventListener('change', function() {
+                createScatterPlot(data);
+            });
+            
+            document.getElementById('color-by').addEventListener('change', function() {
+                createScatterPlot(data);
+            });
+            
+            document.getElementById('size-by').addEventListener('change', function() {
+                createScatterPlot(data);
+            });
+            
+            // Bar chart options
+            document.getElementById('bar-x-axis').addEventListener('change', function() {
+                createBarChart(data);
+            });
+            
+            document.getElementById('bar-y-axis').addEventListener('change', function() {
+                createBarChart(data);
+            });
+            
+            document.getElementById('bar-color-by').addEventListener('change', function() {
+                createBarChart(data);
+            });
+            
+            document.getElementById('bar-sort-by').addEventListener('change', function() {
+                createBarChart(data);
+            });
+        }
+    });
+</script>
+{/scripts}
+{/include}
