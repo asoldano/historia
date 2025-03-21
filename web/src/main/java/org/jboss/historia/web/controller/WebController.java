@@ -287,40 +287,4 @@ public class WebController {
         return user;
     }
     
-    /**
-     * Format a date/time for display.
-     * 
-     * @param dateTime The date/time to format
-     * @return The formatted date/time
-     */
-    public static String formatDateTime(java.time.LocalDateTime dateTime) {
-        if (dateTime == null) {
-            return "";
-        }
-        return dateTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-    }
-    
-    /**
-     * Format a duration in seconds for display.
-     * 
-     * @param seconds The duration in seconds
-     * @return The formatted duration
-     */
-    public static String formatDuration(Long seconds) {
-        if (seconds == null) {
-            return "";
-        }
-        
-        long hours = seconds / 3600;
-        long minutes = (seconds % 3600) / 60;
-        long secs = seconds % 60;
-        
-        if (hours > 0) {
-            return String.format("%dh %dm %ds", hours, minutes, secs);
-        } else if (minutes > 0) {
-            return String.format("%dm %ds", minutes, secs);
-        } else {
-            return String.format("%ds", secs);
-        }
-    }
 }

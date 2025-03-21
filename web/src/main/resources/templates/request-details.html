@@ -46,24 +46,34 @@
                     </tr>
                     <tr>
                         <th>Submitted At</th>
-                        <td>{formatDateTime(request.submittedAt)}</td>
+                        <td>{#if request.submittedAt}{request.submittedAt.format('yyyy-MM-dd HH:mm:ss')}{/if}</td>
                     </tr>
                     {#if request.startedAt}
                     <tr>
                         <th>Started At</th>
-                        <td>{formatDateTime(request.startedAt)}</td>
+                        <td>{#if request.startedAt}{request.startedAt.format('yyyy-MM-dd HH:mm:ss')}{/if}</td>
                     </tr>
                     {/if}
                     {#if request.completedAt}
                     <tr>
                         <th>Completed At</th>
-                        <td>{formatDateTime(request.completedAt)}</td>
+                        <td>{#if request.completedAt}{request.completedAt.format('yyyy-MM-dd HH:mm:ss')}{/if}</td>
                     </tr>
                     {/if}
                     {#if request.durationSeconds}
                     <tr>
                         <th>Duration</th>
-                        <td>{formatDuration(request.durationSeconds)}</td>
+                        <td>
+                            {#with request.durationSeconds}
+                                {#if this > 3600}
+                                    {this / 3600}h {(this % 3600) / 60}m {this % 60}s
+                                {#else if this > 60}
+                                    {this / 60}m {this % 60}s
+                                {#else}
+                                    {this}s
+                                {/if}
+                            {/with}
+                        </td>
                     </tr>
                     {/if}
                 </table>
