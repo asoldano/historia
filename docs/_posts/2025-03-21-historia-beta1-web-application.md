@@ -1,6 +1,6 @@
 ---
 title: "Historia 1.0.0.Beta1: Introducing the Web Application"
-date: 2025-03-22
+date: 2025-03-21
 ---
 
 # Historia 1.0.0.Beta1: Introducing the Web Application
