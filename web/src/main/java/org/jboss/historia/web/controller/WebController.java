@@ -14,7 +14,6 @@ import javax.inject.Inject;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 
-import org.jboss.historia.web.model.AnalysisRequest;
 import org.jboss.historia.web.model.AnalysisRequestDTO;
 import org.jboss.historia.web.model.RequestStatus;
 import org.jboss.historia.web.service.AnalysisService;

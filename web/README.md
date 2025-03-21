@@ -65,9 +65,6 @@ The application can be configured using the `application.properties` file in the
 
 - `historia.results.directory` - Directory where analysis results are stored
 - `historia.max.concurrent.analyses` - Maximum number of concurrent analyses
-- `historia.scheduler.interval` - Interval in seconds for checking for new analysis requests
-- `historia.request.timeout` - Timeout in minutes for analysis requests
-- `historia.max.retry.attempts` - Maximum number of retry attempts for failed analyses
 
 ## Architecture
 
