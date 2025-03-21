@@ -24,13 +24,6 @@
                         <div class="form-text">Optional filter to limit analysis to files in a specific path.</div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="localRepoCloneUri" class="form-label">Local Clone Directory</label>
-                        <input type="text" class="form-control" id="localRepoCloneUri" name="localRepoCloneUri" 
-                               placeholder="target/jgit/repository">
-                        <div class="form-text">Optional local directory to clone the repository to. If not specified, a default location will be used.</div>
-                    </div>
-                    
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary">Submit Analysis Request</button>
                         <a href="/requests" class="btn btn-secondary">Cancel</a>
@@ -52,7 +45,6 @@
             
             const gitRepoUrl = document.getElementById('gitRepoUrl').value.trim();
             const pathFilter = document.getElementById('pathFilter').value.trim();
-            const localRepoCloneUri = document.getElementById('localRepoCloneUri').value.trim();
             
             // Validate git repo URL
             if (!gitRepoUrl) {
@@ -63,8 +55,7 @@
             // Prepare request data
             const requestData = {
                 gitRepoUrl: gitRepoUrl,
-                pathFilter: pathFilter || 'src/main/java',
-                localRepoCloneUri: localRepoCloneUri || ''
+                pathFilter: pathFilter || 'src/main/java'
             };
             
             // Submit the request
