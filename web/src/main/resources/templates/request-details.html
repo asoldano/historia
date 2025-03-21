@@ -60,19 +60,11 @@
                         <td>{#if request.completedAt}{request.completedAt.format('yyyy-MM-dd HH:mm:ss')}{/if}</td>
                     </tr>
                     {/if}
-                    {#if request.durationSeconds}
+                    {#if request.formattedDuration}
                     <tr>
                         <th>Duration</th>
                         <td>
-                            {#with request.durationSeconds}
-                                {#if this > 3600}
-                                    {this / 3600}h {(this % 3600) / 60}m {this % 60}s
-                                {#else if this > 60}
-                                    {this / 60}m {this % 60}s
-                                {#else}
-                                    {this}s
-                                {/if}
-                            {/with}
+                            {request.formattedDuration}
                         </td>
                     </tr>
                     {/if}

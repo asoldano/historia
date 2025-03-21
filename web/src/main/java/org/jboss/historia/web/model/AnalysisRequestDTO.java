@@ -166,4 +166,59 @@ public class AnalysisRequestDTO {
     public void setDurationSeconds(Long durationSeconds) {
         this.durationSeconds = durationSeconds;
     }
+    
+    /**
+     * Get the hours part of the duration.
+     * 
+     * @return The hours part of the duration, or null if the duration is not available
+     */
+    public Long getDurationHours() {
+        if (durationSeconds != null) {
+            return durationSeconds / 3600;
+        }
+        return null;
+    }
+    
+    /**
+     * Get the minutes part of the duration (excluding full hours).
+     * 
+     * @return The minutes part of the duration, or null if the duration is not available
+     */
+    public Long getDurationMinutes() {
+        if (durationSeconds != null) {
+            return (durationSeconds % 3600) / 60;
+        }
+        return null;
+    }
+    
+    /**
+     * Get the seconds part of the duration (excluding full minutes).
+     * 
+     * @return The seconds part of the duration, or null if the duration is not available
+     */
+    public Long getDurationRemainingSeconds() {
+        if (durationSeconds != null) {
+            return durationSeconds % 60;
+        }
+        return null;
+    }
+    
+    /**
+     * Get a formatted string representation of the duration.
+     * 
+     * @return A formatted string representation of the duration (e.g., "1h 30m 45s"), or null if the duration is not available
+     */
+    public String getFormattedDuration() {
+        if (durationSeconds == null) {
+            return null;
+        }
+        
+        if (durationSeconds > 3600) {
+            return getDurationHours() + "h " + getDurationMinutes() + "m " + getDurationRemainingSeconds() + "s";
+        } else if (durationSeconds > 60) {
+            return getDurationMinutes() + "m " + getDurationRemainingSeconds() + "s";
+        } else {
+            return durationSeconds + "s";
+        }
+    }
 }

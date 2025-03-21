@@ -183,6 +183,65 @@ public class AnalysisRequest extends PanacheEntityBase {
         return null;
     }
     
+    /**
+     * Get the hours part of the duration.
+     * 
+     * @return The hours part of the duration, or null if the analysis is not complete
+     */
+    public Long getDurationHours() {
+        Long seconds = getDurationSeconds();
+        if (seconds != null) {
+            return seconds / 3600;
+        }
+        return null;
+    }
+    
+    /**
+     * Get the minutes part of the duration (excluding full hours).
+     * 
+     * @return The minutes part of the duration, or null if the analysis is not complete
+     */
+    public Long getDurationMinutes() {
+        Long seconds = getDurationSeconds();
+        if (seconds != null) {
+            return (seconds % 3600) / 60;
+        }
+        return null;
+    }
+    
+    /**
+     * Get the seconds part of the duration (excluding full minutes).
+     * 
+     * @return The seconds part of the duration, or null if the analysis is not complete
+     */
+    public Long getDurationRemainingSeconds() {
+        Long seconds = getDurationSeconds();
+        if (seconds != null) {
+            return seconds % 60;
+        }
+        return null;
+    }
+    
+    /**
+     * Get a formatted string representation of the duration.
+     * 
+     * @return A formatted string representation of the duration (e.g., "1h 30m 45s"), or null if the analysis is not complete
+     */
+    public String getFormattedDuration() {
+        Long seconds = getDurationSeconds();
+        if (seconds == null) {
+            return null;
+        }
+        
+        if (seconds > 3600) {
+            return getDurationHours() + "h " + getDurationMinutes() + "m " + getDurationRemainingSeconds() + "s";
+        } else if (seconds > 60) {
+            return getDurationMinutes() + "m " + getDurationRemainingSeconds() + "s";
+        } else {
+            return seconds + "s";
+        }
+    }
+    
     @Override
     public String toString() {
         return "AnalysisRequest [id=" + id + ", gitRepoUrl=" + gitRepoUrl + ", status=" + status + "]";
