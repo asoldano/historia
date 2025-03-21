@@ -78,7 +78,7 @@ public class AnalysisRequest extends PanacheEntityBase {
             repoName = repoName.substring(0, repoName.length() - 4);
         }
         // Use absolute path to avoid issues with relative paths
-        this.localRepoCloneUri = System.getProperty("user.dir") + "/web/target/jgit/" + repoName;
+        this.localRepoCloneUri = System.getProperty("user.dir") + "/target/historia-web-app/jgit/" + submittedAt + "/" + repoName;
     }
     
     // Getters and setters
