@@ -257,6 +257,10 @@ public class AnalysisService {
         // Create the local repo clone directory if it doesn't exist
         File localRepoDir = new File(request.getLocalRepoCloneUri());
         if (!localRepoDir.exists()) {
+            // Ensure parent directories exist
+            if (!localRepoDir.getParentFile().exists()) {
+                localRepoDir.getParentFile().mkdirs();
+            }
             localRepoDir.mkdirs();
         }
         
