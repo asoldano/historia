@@ -96,12 +96,11 @@
         // Show message if present
         if (message) {
             const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.className = 'alert alert-' + (type || 'info') + ' alert-dismissible fade show';
             alertDiv.role = 'alert';
-            alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
+            alertDiv.innerHTML = 
+                message +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
             
             const mainContent = document.querySelector('.main-content');
             mainContent.insertBefore(alertDiv, mainContent.firstChild);
@@ -116,9 +115,9 @@
                 event.preventDefault();
                 
                 if (confirm('Are you sure you want to cancel this request?')) {
-                    const requestId = this.getAttribute('data-id');
+                    const id = this.getAttribute('data-id');
                     
-                    fetch(`/api/requests/${requestId}/cancel`, {
+                    fetch('/api/requests/' + id + '/cancel', {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json'
@@ -148,9 +147,9 @@
                 event.preventDefault();
                 
                 if (confirm('Are you sure you want to delete this request? This action cannot be undone.')) {
-                    const requestId = this.getAttribute('data-id');
+                    const id = this.getAttribute('data-id');
                     
-                    fetch(`/api/requests/${requestId}`, {
+                    fetch('/api/requests/' + id, {
                         method: 'DELETE'
                     })
                     .then(response => {
@@ -189,16 +188,16 @@
                                 const parser = new DOMParser();
                                 const doc = parser.parseFromString(html, 'text/html');
                                 
-                                const tabContent = doc.querySelector(`#${tabId.replace('-tab', '')}`);
+                                const tabContent = doc.querySelector('#' + tabId.replace('-tab', ''));
                                 if (tabContent) {
-                                    document.querySelector(`#${tabId.replace('-tab', '')}`).innerHTML = tabContent.innerHTML;
+                                    document.querySelector('#' + tabId.replace('-tab', '')).innerHTML = tabContent.innerHTML;
                                 }
                                 
                                 // Update counts in tabs
                                 const tabs = doc.querySelectorAll('.nav-link .badge');
                                 tabs.forEach(badge => {
                                     const targetTabId = badge.closest('.nav-link').id;
-                                    document.querySelector(`#${targetTabId} .badge`).textContent = badge.textContent;
+                                    document.querySelector('#' + targetTabId + ' .badge').textContent = badge.textContent;
                                 });
                             });
                     }, 10000);

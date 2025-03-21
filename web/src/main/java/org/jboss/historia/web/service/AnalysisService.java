@@ -139,7 +139,7 @@ public class AnalysisService {
      * Process queued analysis requests.
      * This method is scheduled to run periodically.
      */
-    @Scheduled(every = "{historia.scheduler.interval}s")
+    @Scheduled(every = "30s")
     void processQueuedRequests() {
         LOG.info("Checking for pending analysis requests...");
         

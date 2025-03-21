@@ -20,7 +20,6 @@ import org.jboss.historia.web.model.RequestStatus;
 import org.jboss.historia.web.service.AnalysisService;
 import org.jboss.logging.Logger;
 
-import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.quarkus.security.identity.SecurityIdentity;
 
@@ -45,30 +44,25 @@ public class WebController {
     @Inject
     SecurityIdentity identity;
     
-    /**
-     * Templates for the web UI.
-     */
-    @CheckedTemplate
-    public static class Templates {
-        public static native TemplateInstance index(Map<String, Object> user, String active);
-        public static native TemplateInstance requests(List<AnalysisRequestDTO> requests, 
-                                                     List<AnalysisRequestDTO> pendingRequests,
-                                                     List<AnalysisRequestDTO> processingRequests,
-                                                     List<AnalysisRequestDTO> completedRequests,
-                                                     List<AnalysisRequestDTO> failedRequests,
-                                                     long pendingCount, long processingCount,
-                                                     long completedCount, long failedCount,
-                                                     Map<String, Object> user, String active,
-                                                     Map<String, Object> message);
-        public static native TemplateInstance newRequest(Map<String, Object> user, String active);
-        public static native TemplateInstance requestDetails(AnalysisRequestDTO request, 
-                                                           List<List<String>> resultPreview,
-                                                           List<String> resultHeaders,
-                                                           boolean resultHasMore,
-                                                           Map<String, Object> user, String active);
-        public static native TemplateInstance visualization(AnalysisRequestDTO request,
-                                                          Map<String, Object> user, String active);
-    }
+    @Inject
+    @io.quarkus.qute.Location("index.html")
+    io.quarkus.qute.Template indexTemplate;
+    
+    @Inject
+    @io.quarkus.qute.Location("requests.html")
+    io.quarkus.qute.Template requestsTemplate;
+    
+    @Inject
+    @io.quarkus.qute.Location("new-request.html")
+    io.quarkus.qute.Template newRequestTemplate;
+    
+    @Inject
+    @io.quarkus.qute.Location("request-details.html")
+    io.quarkus.qute.Template requestDetailsTemplate;
+    
+    @Inject
+    @io.quarkus.qute.Location("visualization.html")
+    io.quarkus.qute.Template visualizationTemplate;
     
     /**
      * Home page.
@@ -79,7 +73,8 @@ public class WebController {
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance index(@Context SecurityContext securityContext) {
-        return Templates.index(getUserInfo(securityContext), "home");
+        return indexTemplate.data("user", getUserInfo(securityContext))
+                           .data("active", "home");
     }
     
     /**
@@ -134,20 +129,18 @@ public class WebController {
             message.put("type", messageType != null ? messageType : "info");
         }
         
-        return Templates.requests(
-                requests,
-                pendingRequests,
-                processingRequests,
-                completedRequests,
-                failedRequests,
-                pendingRequests.size(),
-                processingRequests.size(),
-                completedRequests.size(),
-                failedRequests.size(),
-                getUserInfo(securityContext),
-                "requests",
-                message
-        );
+        return requestsTemplate.data("requests", requests)
+                              .data("pendingRequests", pendingRequests)
+                              .data("processingRequests", processingRequests)
+                              .data("completedRequests", completedRequests)
+                              .data("failedRequests", failedRequests)
+                              .data("pendingCount", pendingRequests.size())
+                              .data("processingCount", processingRequests.size())
+                              .data("completedCount", completedRequests.size())
+                              .data("failedCount", failedRequests.size())
+                              .data("user", getUserInfo(securityContext))
+                              .data("active", "requests")
+                              .data("message", message);
     }
     
     /**
@@ -161,7 +154,8 @@ public class WebController {
     @Produces(MediaType.TEXT_HTML)
     @RolesAllowed({"user", "admin"})
     public TemplateInstance newRequest(@Context SecurityContext securityContext) {
-        return Templates.newRequest(getUserInfo(securityContext), "new-request");
+        return newRequestTemplate.data("user", getUserInfo(securityContext))
+                                .data("active", "new-request");
     }
     
     /**
@@ -179,7 +173,8 @@ public class WebController {
                                          @Context SecurityContext securityContext) {
         AnalysisRequestDTO request = service.getRequestDTOById(id);
         if (request == null) {
-            return Templates.index(getUserInfo(securityContext), "home");
+            return indexTemplate.data("user", getUserInfo(securityContext))
+                               .data("active", "home");
         }
         
         String username = securityContext.getUserPrincipal().getName();
@@ -187,7 +182,8 @@ public class WebController {
         
         // Check if the user has permission to view this request
         if (!isAdmin && !username.equals(request.getOwner())) {
-            return Templates.index(getUserInfo(securityContext), "home");
+            return indexTemplate.data("user", getUserInfo(securityContext))
+                               .data("active", "home");
         }
         
         // Get result preview if completed
@@ -222,14 +218,12 @@ public class WebController {
             }
         }
         
-        return Templates.requestDetails(
-                request,
-                resultPreview,
-                resultHeaders,
-                resultHasMore,
-                getUserInfo(securityContext),
-                "requests"
-        );
+        return requestDetailsTemplate.data("request", request)
+                                    .data("resultPreview", resultPreview)
+                                    .data("resultHeaders", resultHeaders)
+                                    .data("resultHasMore", resultHasMore)
+                                    .data("user", getUserInfo(securityContext))
+                                    .data("active", "requests");
     }
     
     /**
@@ -247,7 +241,8 @@ public class WebController {
                                         @Context SecurityContext securityContext) {
         AnalysisRequestDTO request = service.getRequestDTOById(id);
         if (request == null) {
-            return Templates.index(getUserInfo(securityContext), "home");
+            return indexTemplate.data("user", getUserInfo(securityContext))
+                               .data("active", "home");
         }
         
         String username = securityContext.getUserPrincipal().getName();
@@ -255,26 +250,23 @@ public class WebController {
         
         // Check if the user has permission to view this request
         if (!isAdmin && !username.equals(request.getOwner())) {
-            return Templates.index(getUserInfo(securityContext), "home");
+            return indexTemplate.data("user", getUserInfo(securityContext))
+                               .data("active", "home");
         }
         
         // Check if the request is completed
         if (request.getStatus() != RequestStatus.COMPLETED) {
-            return Templates.requestDetails(
-                    request,
-                    null,
-                    null,
-                    false,
-                    getUserInfo(securityContext),
-                    "requests"
-            );
+            return requestDetailsTemplate.data("request", request)
+                                        .data("resultPreview", null)
+                                        .data("resultHeaders", null)
+                                        .data("resultHasMore", false)
+                                        .data("user", getUserInfo(securityContext))
+                                        .data("active", "requests");
         }
         
-        return Templates.visualization(
-                request,
-                getUserInfo(securityContext),
-                "requests"
-        );
+        return visualizationTemplate.data("request", request)
+                                   .data("user", getUserInfo(securityContext))
+                                   .data("active", "requests");
     }
     
     /**
