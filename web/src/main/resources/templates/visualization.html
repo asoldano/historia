@@ -301,7 +301,7 @@
                 }
             };
             
-            vegaEmbed('#vis-scatter', spec, {actions: true});
+            vegaEmbed('#vis-scatter', spec, JSON.parse('{"actions": true}'));
         }
         
         // Create bar chart
@@ -348,7 +348,7 @@
                 }
             };
             
-            vegaEmbed('#vis-bar', spec, {actions: true});
+            vegaEmbed('#vis-bar', spec, JSON.parse('{"actions": true}'));
         }
         
         // Set up event listeners for visualization options
